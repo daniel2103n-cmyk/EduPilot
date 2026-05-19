@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+{% block page_title %}Rutas Académicas — EduPilot{% endblock %}
+{% block body_class %}flex{% endblock %}
+{% block content %}
+
+<!-- ════════════════════ SIDEBAR ════════════════════ -->
+<aside class="hidden md:flex flex-col h-full p-md gap-base bg-surface/80 backdrop-blur-md border-r border-outline-variant/30 fixed left-0 top-0 w-64 z-40 shadow-sm">
+  <!-- Brand -->
+  <div class="mb-lg px-xs mt-xs">
+    <div class="flex items-center gap-sm mb-xs">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-primary-fixed flex items-center justify-center flex-shrink-0 shadow-soft">
+        <span class="material-symbols-outlined text-on-primary text-xl">school</span>
+      </div>
+      <h2 class="text-headline-md font-headline-md font-bold text-primary tracking-tight">EduPilot</h2>
+    </div>
+    <p class="font-body-sm text-body-sm text-on-surface-variant font-medium bg-surface-container-lowest/50 px-2 py-1 rounded-lg inline-block border border-outline-variant/20">
+      {{ request.user.studentprofile.program|default:"Mi programa" }}
+    </p>
+  </div>
+  
+  <!-- Nav -->
+  <nav class="flex-1 flex flex-col gap-xs mt-sm">
+    <a class="flex items-center gap-base px-md py-sm rounded-xl transition-all duration-300 {% if active_nav == 'dashboard' %}bg-primary text-on-primary shadow-soft translate-x-1{% else %}text-on-surface-variant hover:bg-surface-container hover:text-primary{% endif %}"
+       href="{% url 'student:dashboard' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'dashboard' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>space_dashboard</span>
+      <span class="font-label-md text-label-md">Dashboard</span>
+    </a>
+    <a class="flex items-center gap-base px-md py-sm rounded-xl transition-all duration-300 {% if active_nav == 'courses' %}bg-primary text-on-primary shadow-soft translate-x-1{% else %}text-on-surface-variant hover:bg-surface-container hover:text-primary{% endif %}"
+       href="{% url 'student:courses' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'courses' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>auto_stories</span>
+      <span class="font-label-md text-label-md">Materias</span>
+    </a>
+    <a class="flex items-center gap-base px-md py-sm rounded-xl transition-all duration-300 {% if active_nav == 'routes' %}bg-primary text-on-primary shadow-soft translate-x-1{% else %}text-on-surface-variant hover:bg-surface-container hover:text-primary{% endif %}"
+       href="{% url 'student:routes' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'routes' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>route</span>
+      <span class="font-label-md text-label-md">Rutas Académicas</span>
+    </a>
+  </nav>
+
+  <!-- Bottom Profile -->
+  <div class="mt-auto border-t border-outline-variant/30 pt-md flex flex-col gap-xs">
+    <div class="flex items-center gap-sm p-sm rounded-xl bg-surface-container-lowest/50 border border-outline-variant/20 shadow-sm mb-xs group">
+      <div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-md shadow-inner group-hover:scale-105 transition-transform">
+        {{ request.user.first_name.0|upper|default:"U" }}
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="font-label-md text-label-md text-on-surface truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
+        <p class="font-label-sm text-label-sm text-primary">Semestre {{ request.user.studentprofile.current_semester|default:"—" }}</p>
+      </div>
+    </div>
+    <a href="{% url 'authentication:logout' %}" class="flex items-center justify-center gap-2 px-md py-sm text-error hover:bg-error-container hover:text-on-error-container rounded-xl transition-colors font-label-md text-label-md border border-transparent hover:border-error/20">
+      <span class="material-symbols-outlined text-[18px]">logout</span>
+      Cerrar sesión
+    </a>
+  </div>
+</aside>
+
+<!-- ════════════════════ MAIN ════════════════════ -->
+<main class="flex-1 md:ml-64 flex flex-col min-h-screen">
+
+  <!-- Content -->
+  <div class="p-gutter md:p-margin max-w-7xl mx-auto w-full flex-1 mt-md">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-xs mb-lg">
+      <a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors"
+         href="{% url 'student:dashboard' %}">Inicio</a>
+      <span class="material-symbols-outlined text-on-surface-variant text-[16px]">chevron_right</span>
+      <span class="font-label-md text-label-md text-primary">Rutas Académicas</span>
+    </nav>
+
+    <!-- ── Page Header ──────────────────────────────────────────────────── -->
+    <div class="mb-xl">
+      <h1 class="font-headline-lg text-headline-lg text-on-surface mb-xs">Mi Ruta Académica</h1>
+      <p class="font-body-md text-body-md text-on-surface-variant">
+        Materias recomendadas según tus aprobadas y prerrequisitos cumplidos.
+      </p>
+    </div>
+
+    <!-- ── Selector de estrategia ───────────────────────────────────────── -->
+    <div class="bg-surface-container-lowest rounded-xl soft-shadow p-md mb-xl">
+      <p class="font-label-md text-label-md text-on-surface-variant mb-md">Selecciona tu estrategia de estudio:</p>
+      <div class="flex flex-wrap gap-sm">
+        {% for key, label in all_strategies %}
+        <a href="?strategy={{ key }}"
+           class="flex items-center gap-sm px-md py-sm rounded-full font-label-md text-label-md transition-all duration-200
+                  {% if strategy == key %}
+                    {% if key == 'FAST_TRACK' %}bg-error text-on-error shadow-sm{% elif key == 'BALANCED' %}bg-tertiary text-on-tertiary shadow-sm{% else %}bg-secondary text-on-secondary shadow-sm{% endif %}
+                  {% else %}
+                    bg-surface-container text-on-surface-variant hover:bg-surface-container-high
+                  {% endif %}">
+          {% if key == 'FAST_TRACK' %}
+            <span class="material-symbols-outlined text-[16px]">rocket_launch</span>
+          {% elif key == 'BALANCED' %}
+            <span class="material-symbols-outlined text-[16px]">balance</span>
+          {% else %}
+            <span class="material-symbols-outlined text-[16px]">self_improvement</span>
+          {% endif %}
+          {{ label }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ── Error / Sin perfil ────────────────────────────────────────────── -->
+    {% if route.error %}
+    <div class="bg-surface-container-lowest rounded-xl soft-shadow p-xl flex flex-col items-center text-center gap-md">
+      <span class="material-symbols-outlined text-[64px] text-primary opacity-25">route</span>
+      <p class="font-headline-md text-headline-md text-on-surface">Sin ruta disponible</p>
+      <p class="font-body-md text-body-md text-on-surface-variant max-w-md">{{ route.error }}</p>
+      <a href="{% url 'student:dashboard' %}"
+         class="bg-primary text-on-primary font-label-md text-label-md px-lg py-sm rounded-lg hover:bg-on-primary-fixed-variant transition-colors">
+        Ver mi historial
+      </a>
+    </div>
+
+    {% else %}
+
+    <!-- ── Tarjetas de resumen ───────────────────────────────────────────── -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-md mb-xl">
+
+      <!-- Estrategia -->
+      <div class="col-span-2 md:col-span-1 bg-surface-container-lowest rounded-xl soft-shadow p-md flex items-center gap-md">
+        <div class="w-10 h-10 rounded-full
+          {% if route.strategy == 'FAST_TRACK' %}bg-error-container{% elif route.strategy == 'BALANCED' %}bg-tertiary-fixed{% else %}bg-secondary-container{% endif %}
+          flex items-center justify-center flex-shrink-0">
+          {% if route.strategy == 'FAST_TRACK' %}
+            <span class="material-symbols-outlined text-error text-[20px]">rocket_launch</span>
+          {% elif route.strategy == 'BALANCED' %}
+            <span class="material-symbols-outlined text-tertiary text-[20px]">balance</span>
+          {% else %}
+            <span class="material-symbols-outlined text-secondary text-[20px]">self_improvement</span>
+          {% endif %}
+        </div>
+        <div>
+          <p class="font-headline-md text-headline-md text-on-surface leading-none">{{ route.strategy_label }}</p>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-[2px]">Estrategia activa</p>
+        </div>
+      </div>
+
+      <!-- Materias -->
+      <div class="bg-surface-container-lowest rounded-xl soft-shadow p-md flex items-center gap-md">
+        <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-primary text-[20px]">auto_stories</span>
+        </div>
+        <div>
+          <p class="font-headline-lg text-headline-lg text-on-surface leading-none">{{ route.total_courses }}</p>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-[2px]">Materias</p>
+        </div>
+      </div>
+
+      <!-- Semestres estimados -->
+      <div class="bg-surface-container-lowest rounded-xl soft-shadow p-md flex items-center gap-md">
+        <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-on-surface-variant text-[20px]">calendar_month</span>
+        </div>
+        <div>
+          <p class="font-headline-lg text-headline-lg text-on-surface leading-none">{{ route.estimated_semesters }}</p>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-[2px]">Semestres</p>
+        </div>
+      </div>
+
+      <!-- Dificultad -->
+      <div class="bg-surface-container-lowest rounded-xl soft-shadow p-md flex items-center gap-md">
+        <div class="w-10 h-10 rounded-full
+          {% if route.strategy == 'FAST_TRACK' %}bg-error-container{% elif route.strategy == 'BALANCED' %}bg-tertiary-fixed{% else %}bg-secondary-container{% endif %}
+          flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-[20px]
+            {% if route.strategy == 'FAST_TRACK' %}text-error{% elif route.strategy == 'BALANCED' %}text-tertiary{% else %}text-secondary{% endif %}">
+            signal_cellular_alt
+          </span>
+        </div>
+        <div>
+          <p class="font-headline-md text-headline-md text-on-surface leading-none">{{ route.difficulty_label }}</p>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-[2px]">Dificultad</p>
+        </div>
+      </div>
+
+    </div><!-- /summary cards -->
+
+    <!-- ── Descripción de la estrategia ─────────────────────────────────── -->
+    <div class="flex items-start gap-md bg-surface-container rounded-xl p-md mb-xl">
+      <span class="material-symbols-outlined text-primary text-[22px] flex-shrink-0 mt-[2px]" style="font-variation-settings:'FILL' 1;">info</span>
+      <p class="font-body-md text-body-md text-on-surface-variant">{{ route.strategy_desc }}</p>
+    </div>
+
+    <!-- ── Explicación IA ────────────────────────────────────────────────── -->
+    {% if ai_explanation %}
+    <div class="bg-primary-container rounded-xl p-md mb-xl flex items-start gap-md shadow-sm">
+      <div class="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0 shadow-sm">
+        <span class="material-symbols-outlined text-on-primary text-[22px]" style="font-variation-settings:'FILL' 1;">psychology</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-sm mb-sm flex-wrap">
+          <p class="font-label-md text-label-md text-on-primary-container font-semibold">Análisis de EduPilot AI</p>
+          <span class="inline-flex items-center gap-xs px-sm py-[2px] rounded-full bg-primary text-on-primary font-label-sm text-label-sm">
+            <span class="material-symbols-outlined text-[12px]">auto_awesome</span>Mistral 7B
+          </span>
+        </div>
+        <div id="ai-explanation-text" class="font-body-md text-body-md text-on-primary-container leading-relaxed">
+          {{ ai_explanation|linebreaksbr }}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Semesters timeline ────────────────────────────────────────────── -->
+    {% for semester in route.semesters %}
+    <section class="mb-xl">
+
+      <!-- Encabezado del semestre -->
+      <div class="flex items-center gap-md mb-md">
+        <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-on-primary font-bold text-label-md flex-shrink-0 shadow-sm">
+          {{ semester.number }}
+        </div>
+        <div class="flex-1 h-px bg-outline-variant"></div>
+        <div class="flex items-center gap-sm text-on-surface-variant">
+          <span class="material-symbols-outlined text-[16px]">toll</span>
+          <span class="font-label-sm text-label-sm">{{ semester.total_credits }} créditos</span>
+          <span class="font-label-sm text-label-sm text-outline">·</span>
+          <span class="font-label-sm text-label-sm">{{ semester.courses|length }} materia{{ semester.courses|length|pluralize:"s" }}</span>
+        </div>
+      </div>
+
+      <!-- Grid de materias del semestre -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
+        {% for course in semester.courses %}
+        <div class="bg-surface-container-lowest rounded-xl soft-shadow p-md hover:shadow-md transition-shadow border-l-4 border-primary">
+          <div class="flex items-start justify-between mb-sm">
+            <div class="flex-1 min-w-0">
+              <span class="inline-block px-2 py-[2px] rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm mb-xs">
+                {{ course.code }}
+              </span>
+              <h3 class="font-label-md text-label-md text-on-surface leading-snug">{{ course.name }}</h3>
+            </div>
+            <div class="ml-sm flex-shrink-0 text-right">
+              <p class="font-headline-md text-headline-md text-primary leading-none">{{ course.credits }}</p>
+              <p class="font-label-sm text-label-sm text-on-surface-variant">créditos</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-sm mt-md pt-md border-t border-outline-variant">
+            <span class="flex items-center gap-xs font-label-sm text-label-sm text-on-surface-variant">
+              <span class="material-symbols-outlined text-[14px]">layers</span>Nivel {{ course.level }}
+            </span>
+            <span class="ml-auto inline-flex items-center gap-xs px-sm py-[2px] rounded-full bg-primary-container text-on-primary-container font-label-sm text-label-sm">
+              <span class="w-2 h-2 rounded-full bg-primary"></span>Disponible
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+    </section>
+    {% endfor %}
+
+    {% endif %}{# /route.error #}
+
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const aiTextEl = document.getElementById('ai-explanation-text');
+    if (aiTextEl) {
+      let html = aiTextEl.innerHTML;
+      // Reemplaza **texto** o __texto__ por <strong>texto</strong>
+      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+      aiTextEl.innerHTML = html;
+    }
+  });
+</script>
+
+{% endblock %}

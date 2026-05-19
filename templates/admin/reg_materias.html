@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Gestión de Materias — EduPilot{% endblock %}
+{% block body_class %}flex bg-surface{% endblock %}
+
+{% block content %}
+<!-- ════════════════════ SIDEBAR ════════════════════ -->
+<aside class="fixed top-0 left-0 h-full w-64 bg-inverse-surface text-inverse-on-surface shadow-lg z-40 flex flex-col p-md gap-base">
+  <!-- Brand -->
+  <div class="flex items-center gap-sm mb-lg px-xs mt-xs">
+    <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-soft">
+      <span class="material-symbols-outlined text-on-primary text-xl" style="font-variation-settings: 'FILL' 1;">manage_accounts</span>
+    </div>
+    <div class="flex flex-col">
+      <span class="font-headline-md text-headline-md font-bold tracking-tight">EduPilot</span>
+      <span class="font-label-sm text-label-sm text-inverse-on-surface/70">Panel Administrativo</span>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="flex flex-col gap-xs flex-1 mt-md">
+    <a class="flex items-center gap-base px-md py-sm rounded-lg transition-all duration-300 {% if active_nav == 'dashboard' %}bg-primary text-on-primary shadow-md{% else %}text-inverse-on-surface/80 hover:bg-inverse-on-surface/10 hover:text-inverse-on-surface{% endif %}"
+       href="{% url 'admin_panel:dashboard' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'dashboard' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>space_dashboard</span>
+      <span class="font-label-md text-label-md">Dashboard</span>
+    </a>
+    <a class="flex items-center gap-base px-md py-sm rounded-lg transition-all duration-300 {% if active_nav == 'students' %}bg-primary text-on-primary shadow-md{% else %}text-inverse-on-surface/80 hover:bg-inverse-on-surface/10 hover:text-inverse-on-surface{% endif %}"
+       href="{% url 'admin_panel:students' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'students' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>groups</span>
+      <span class="font-label-md text-label-md">Estudiantes</span>
+    </a>
+    <a class="flex items-center gap-base px-md py-sm rounded-lg transition-all duration-300 {% if active_nav == 'courses' %}bg-primary text-on-primary shadow-md{% else %}text-inverse-on-surface/80 hover:bg-inverse-on-surface/10 hover:text-inverse-on-surface{% endif %}"
+       href="{% url 'admin_panel:courses' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'courses' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>menu_book</span>
+      <span class="font-label-md text-label-md">Materias</span>
+    </a>
+  </nav>
+
+  <!-- Bottom Profile -->
+  <div class="mt-auto pt-md border-t border-inverse-on-surface/10 flex flex-col gap-sm">
+    <div class="flex items-center gap-sm px-xs mb-xs">
+      <div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-sm shadow-sm">
+        {{ request.user.first_name.0|upper|default:"A" }}
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="font-label-sm text-label-sm truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
+        <p class="font-body-sm text-[11px] text-inverse-on-surface/60 truncate">{{ request.user.email }}</p>
+      </div>
+    </div>
+    <a href="{% url 'authentication:logout' %}" class="flex items-center gap-base px-md py-sm text-error/90 hover:bg-error-container/10 hover:text-error rounded-lg transition-colors">
+      <span class="material-symbols-outlined text-[20px]">logout</span>
+      <span class="font-label-md text-label-md">Cerrar sesión</span>
+    </a>
+  </div>
+</aside>
+
+<!-- ════════════════════ MAIN ════════════════════ -->
+<main class="ml-64 flex-1 flex flex-col min-h-screen">
+  <div class="px-margin py-margin flex flex-col gap-gutter flex-1">
+    
+    <!-- Breadcrumbs + Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-base">
+      <div>
+        <nav class="flex items-center gap-2 mb-2 text-on-surface-variant font-label-md text-label-md">
+          <a class="hover:text-primary transition-colors" href="{% url 'admin_panel:dashboard' %}">Admin</a>
+          <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+          <span class="text-primary font-bold">Materias</span>
+        </nav>
+        <h1 class="font-headline-xl text-headline-xl text-on-surface">Catálogo de Materias</h1>
+        <p class="font-body-md text-body-md text-on-surface-variant mt-1">Administra y visualiza el plan de estudios de forma interactiva.</p>
+      </div>
+      <button onclick="openDrawer(drawerMateria)" class="flex items-center justify-center gap-2 bg-primary text-on-primary font-label-md text-label-md py-sm px-md rounded-lg hover:bg-surface-tint transition-colors shadow-sm self-start md:self-auto transform hover:scale-105 duration-200">
+        <span class="material-symbols-outlined">add</span>
+        Crear materia
+      </button>
+    </div>
+
+    <!-- Filtros Inteligentes -->
+    <form method="GET" class="bg-surface-container-lowest rounded-soft p-md shadow-soft flex flex-col md:flex-row gap-base items-center" onchange="this.submit()">
+      <div class="relative flex-1 w-full">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-outline">search</span>
+        <input name="q" value="{{ request.GET.q }}" class="w-full pl-10 pr-4 py-sm rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all font-body-md text-body-md placeholder-on-surface-variant"
+          placeholder="Buscar por código o nombre..." type="search"/>
+      </div>
+      <div class="relative w-full md:w-1/4">
+        <select name="level" class="w-full pl-4 pr-10 py-sm rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none font-body-md text-body-md appearance-none cursor-pointer">
+          <option value="">Todos los semestres</option>
+          {% for i in "123456789"|make_list %}
+          <option value="{{ i }}" {% if request.GET.level == i %}selected{% endif %}>Semestre {{ i }}</option>
+          {% endfor %}
+          <option value="10" {% if request.GET.level == "10" %}selected{% endif %}>Semestre 10</option>
+        </select>
+        <span class="material-symbols-outlined absolute right-3 top-1/2 transform -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+      </div>
+      <div class="relative w-full md:w-1/4">
+        <select name="program" class="w-full pl-4 pr-10 py-sm rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none font-body-md text-body-md appearance-none cursor-pointer">
+          <option value="">Todos los programas</option>
+          {% for prog in programs %}
+          <option value="{{ prog.id }}" {% if request.GET.program == prog.id|stringformat:"s" %}selected{% endif %}>{{ prog.name }}</option>
+          {% endfor %}
+        </select>
+        <span class="material-symbols-outlined absolute right-3 top-1/2 transform -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+      </div>
+      <noscript><button type="submit" class="hidden">Filtrar</button></noscript>
+    </form>
+
+    <!-- Vista de Cuadrícula Agrupada -->
+    <div class="flex flex-col gap-xl">
+      {% if grouped_courses %}
+        {% for level, courses in grouped_courses.items %}
+        <section class="animate-fade-in">
+          <div class="flex items-center gap-3 mb-md">
+            <h2 class="font-headline-md text-headline-md text-on-surface font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">calendar_month</span>
+              Semestre {{ level }}
+            </h2>
+            <span class="bg-surface-container-high px-3 py-1 rounded-full text-label-sm font-label-sm text-on-surface-variant shadow-sm">{{ courses|length }} materias</span>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-base">
+            {% for course in courses %}
+            <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden border border-outline-variant/30 flex flex-col group relative transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+              
+              <!-- Color Indicator -->
+              <div class="h-2 w-full 
+                {% if course.color == 'blue' %}bg-blue-500
+                {% elif course.color == 'red' %}bg-red-500
+                {% elif course.color == 'green' %}bg-green-500
+                {% elif course.color == 'purple' %}bg-purple-500
+                {% elif course.color == 'orange' %}bg-orange-500
+                {% else %}bg-primary{% endif %}">
+              </div>
+              
+              <div class="p-md flex flex-col flex-1">
+                <div class="flex justify-between items-start mb-sm">
+                  <span class="bg-surface-container-low text-on-surface-variant px-2 py-1 rounded text-label-sm font-label-sm font-bold border border-outline-variant/50 shadow-sm">{{ course.code }}</span>
+                  <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="openEditDrawer('{{ course.id }}', '{{ course.code|escapejs }}', '{{ course.name|escapejs }}', '{{ course.description|escapejs }}', '{{ course.credits }}', '{{ course.level }}', '{{ course.color }}', '{{ course.program.id|default:'' }}', '{% for req in course.course_prerequisites.all %}{{ req.required_course_id }}{% if not forloop.last %},{% endif %}{% endfor %}')" class="p-1 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-high">
+                      <span class="material-symbols-outlined text-[18px]">edit</span>
+                    </button>
+                    <form method="POST" class="inline-block" onsubmit="return confirm('¿Seguro que deseas eliminar {{ course.name }}?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_course">
+                      <input type="hidden" name="course_id" value="{{ course.id }}">
+                      <button type="submit" class="p-1 text-on-surface-variant hover:text-error transition-colors rounded-full hover:bg-error-container">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+                
+                <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-xs leading-tight">{{ course.name }}</h3>
+                
+                {% if course.program %}
+                <p class="text-primary font-label-sm text-label-sm mb-sm flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[14px]">school</span>
+                  {{ course.program.name }}
+                </p>
+                {% endif %}
+                
+                <p class="text-body-md font-body-md text-on-surface-variant line-clamp-3 mb-md flex-1">
+                  {{ course.description|default:"Sin descripción registrada." }}
+                </p>
+                
+                <div class="flex items-center justify-between mt-auto pt-md border-t border-outline-variant/30">
+                  <div class="flex items-center gap-1 text-on-surface-variant text-label-md font-label-md bg-surface-container py-1 px-2 rounded-lg">
+                    <span class="material-symbols-outlined text-[18px] text-primary">workspace_premium</span>
+                    {{ course.credits }} <span class="hidden xl:inline">Créditos</span><span class="xl:hidden">Cr.</span>
+                  </div>
+                  <div class="flex items-center gap-1 text-on-surface-variant text-label-md font-label-md bg-surface-container py-1 px-2 rounded-lg" title="Prerrequisitos">
+                    <span class="material-symbols-outlined text-[18px] text-tertiary">account_tree</span>
+                    {{ course.course_prerequisites.count }} Req.
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </section>
+        {% endfor %}
+      {% else %}
+        <!-- Empty State -->
+        <div class="bg-surface-container-lowest rounded-soft shadow-soft p-xl text-center flex flex-col items-center gap-md py-2xl">
+          <div class="w-24 h-24 bg-primary-container rounded-full flex items-center justify-center mb-md">
+            <span class="material-symbols-outlined text-[48px] text-primary">library_books</span>
+          </div>
+          <p class="font-headline-md text-headline-md text-on-surface">No se encontraron materias</p>
+          <p class="font-body-md text-body-md text-on-surface-variant max-w-sm">No hay resultados para los filtros seleccionados o el catálogo está vacío.</p>
+          {% if has_filters %}
+          <a href="{% url 'admin_panel:courses' %}" class="text-primary hover:underline mt-sm font-label-md">Limpiar filtros</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</main>
+
+<!-- Drawers -->
+{% include "admin/_drawer_course.html" with id="drawer-nueva-materia" title="Registrar Materia" action="create_course" %}
+{% include "admin/_drawer_course.html" with id="drawer-editar-materia" title="Editar Materia" action="edit_course" %}
+
+<!-- Overlay -->
+<div id="drawer-overlay" class="fixed inset-0 bg-scrim/30 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"></div>
+
+<script>
+  const drawerMateria = document.getElementById('drawer-nueva-materia');
+  const drawerEditarMateria = document.getElementById('drawer-editar-materia');
+  const drawerOverlay = document.getElementById('drawer-overlay');
+
+  function updatePrerequisitesVisibility(drawer, currentCourseId = null) {
+    const levelInput = drawer.querySelector('[name="level"]');
+    const currentLevel = parseInt(levelInput.value) || 1;
+    const options = drawer.querySelectorAll('.prerequisite-option');
+    let visibleCount = 0;
+
+    options.forEach(opt => {
+      const optLevel = parseInt(opt.dataset.level);
+      const optId = opt.dataset.id;
+      
+      // Regla: Nivel de prerequisito debe ser estrictamente menor al nivel de la materia
+      // Regla: No puede ser la materia misma
+      if (optLevel < currentLevel && optId !== currentCourseId) {
+        opt.style.display = 'flex';
+        visibleCount++;
+      } else {
+        opt.style.display = 'none';
+        const checkbox = opt.querySelector('input');
+        if (checkbox) checkbox.checked = false; // Desmarcar si queda oculto o es inválido
+      }
+    });
+
+    const msg = drawer.querySelector('.no-prerequisites-msg');
+    if (msg) {
+      if (visibleCount === 0) {
+        msg.classList.remove('hidden');
+      } else {
+        msg.classList.add('hidden');
+      }
+    }
+  }
+
+  // Setup event listeners for level inputs
+  document.querySelectorAll('input[name="level"]').forEach(input => {
+    input.addEventListener('input', function() {
+      const drawer = this.closest('[id^="drawer-"]');
+      if (drawer) {
+        const courseIdInput = drawer.querySelector('[name="course_id"]');
+        const courseId = courseIdInput ? courseIdInput.value : null;
+        updatePrerequisitesVisibility(drawer, courseId);
+      }
+    });
+  });
+
+  function openDrawer(drawer) {
+    drawerOverlay.classList.remove('hidden');
+    setTimeout(() => drawerOverlay.classList.remove('opacity-0'), 10);
+    drawer.classList.remove('translate-x-full');
+    
+    if (drawer.id === 'drawer-nueva-materia') {
+      updatePrerequisitesVisibility(drawer, null);
+    }
+  }
+
+  function closeAllDrawers() {
+    drawerMateria.classList.add('translate-x-full');
+    drawerEditarMateria.classList.add('translate-x-full');
+    drawerOverlay.classList.add('opacity-0');
+    setTimeout(() => drawerOverlay.classList.add('hidden'), 300);
+  }
+
+  function openEditDrawer(id, code, name, description, credits, level, color, programId, prerequisitesStr) {
+    const form = document.querySelector('#drawer-editar-materia form');
+    form.querySelector('[name="course_id"]').value = id;
+    form.querySelector('[name="code"]').value = code;
+    form.querySelector('[name="name"]').value = name;
+    form.querySelector('[name="description"]').value = description;
+    form.querySelector('[name="credits"]').value = credits;
+    form.querySelector('[name="level"]').value = level;
+    form.querySelector('[name="color"]').value = color;
+    form.querySelector('[name="program_id"]').value = programId;
+    
+    // Filtramos opciones de prerequisitos antes de marcar las seleccionadas
+    updatePrerequisitesVisibility(drawerEditarMateria, id);
+
+    const selectedIds = prerequisitesStr ? prerequisitesStr.split(',') : [];
+    form.querySelectorAll('.prerequisite-option input[type="checkbox"]').forEach(checkbox => {
+      checkbox.checked = selectedIds.includes(checkbox.value);
+    });
+
+    openDrawer(drawerEditarMateria);
+  }
+
+  document.querySelectorAll('.btn-cerrar-drawer').forEach(btn => btn.addEventListener('click', closeAllDrawers));
+  drawerOverlay.addEventListener('click', closeAllDrawers);
+</script>
+
+<style>
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+{% endblock %}

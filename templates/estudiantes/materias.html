@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+{% block page_title %}Mis Materias — EduPilot{% endblock %}
+{% block body_class %}flex{% endblock %}
+{% block content %}
+
+<!-- ════════════════════ SIDEBAR ════════════════════ -->
+<aside class="hidden md:flex flex-col h-full p-md gap-base bg-surface/80 backdrop-blur-md border-r border-outline-variant/30 fixed left-0 top-0 w-64 z-40 shadow-sm">
+  <!-- Brand -->
+  <div class="mb-lg px-xs mt-xs">
+    <div class="flex items-center gap-sm mb-xs">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-primary-fixed flex items-center justify-center flex-shrink-0 shadow-soft">
+        <span class="material-symbols-outlined text-on-primary text-xl">school</span>
+      </div>
+      <h2 class="text-headline-md font-headline-md font-bold text-primary tracking-tight">EduPilot</h2>
+    </div>
+    <p class="font-body-sm text-body-sm text-on-surface-variant font-medium bg-surface-container-lowest/50 px-2 py-1 rounded-lg inline-block border border-outline-variant/20">
+      {{ request.user.studentprofile.program|default:"Mi programa" }}
+    </p>
+  </div>
+  
+  <!-- Nav -->
+  <nav class="flex-1 flex flex-col gap-xs mt-sm">
+    <a class="flex items-center gap-base px-md py-sm rounded-xl transition-all duration-300 {% if active_nav == 'dashboard' %}bg-primary text-on-primary shadow-soft translate-x-1{% else %}text-on-surface-variant hover:bg-surface-container hover:text-primary{% endif %}"
+       href="{% url 'student:dashboard' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'dashboard' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>space_dashboard</span>
+      <span class="font-label-md text-label-md">Dashboard</span>
+    </a>
+    <a class="flex items-center gap-base px-md py-sm rounded-xl transition-all duration-300 {% if active_nav == 'courses' %}bg-primary text-on-primary shadow-soft translate-x-1{% else %}text-on-surface-variant hover:bg-surface-container hover:text-primary{% endif %}"
+       href="{% url 'student:courses' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'courses' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>auto_stories</span>
+      <span class="font-label-md text-label-md">Materias</span>
+    </a>
+    <a class="flex items-center gap-base px-md py-sm rounded-xl transition-all duration-300 {% if active_nav == 'routes' %}bg-primary text-on-primary shadow-soft translate-x-1{% else %}text-on-surface-variant hover:bg-surface-container hover:text-primary{% endif %}"
+       href="{% url 'student:routes' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'routes' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>route</span>
+      <span class="font-label-md text-label-md">Rutas Académicas</span>
+    </a>
+  </nav>
+
+  <!-- Bottom Profile -->
+  <div class="mt-auto border-t border-outline-variant/30 pt-md flex flex-col gap-xs">
+    <div class="flex items-center gap-sm p-sm rounded-xl bg-surface-container-lowest/50 border border-outline-variant/20 shadow-sm mb-xs group">
+      <div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-md shadow-inner group-hover:scale-105 transition-transform">
+        {{ request.user.first_name.0|upper|default:"U" }}
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="font-label-md text-label-md text-on-surface truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
+        <p class="font-label-sm text-label-sm text-primary">Semestre {{ request.user.studentprofile.current_semester|default:"—" }}</p>
+      </div>
+    </div>
+    <a href="{% url 'authentication:logout' %}" class="flex items-center justify-center gap-2 px-md py-sm text-error hover:bg-error-container hover:text-on-error-container rounded-xl transition-colors font-label-md text-label-md border border-transparent hover:border-error/20">
+      <span class="material-symbols-outlined text-[18px]">logout</span>
+      Cerrar sesión
+    </a>
+  </div>
+</aside>
+
+<!-- ════════════════════ MAIN ════════════════════ -->
+<main class="flex-1 md:ml-64 flex flex-col min-h-screen">
+
+  <!-- Content -->
+  <div class="p-gutter md:p-margin max-w-7xl mx-auto w-full flex-1 mt-md">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-xs mb-lg">
+      <a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors"
+         href="{% url 'student:dashboard' %}">Inicio</a>
+      <span class="material-symbols-outlined text-on-surface-variant text-[16px]">chevron_right</span>
+      <span class="font-label-md text-label-md text-primary">Mis Materias</span>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="mb-xl flex flex-col md:flex-row md:items-end justify-between gap-md">
+      <div>
+        <h1 class="font-headline-lg text-headline-lg text-on-surface mb-xs">Mis Materias</h1>
+        <p class="font-body-md text-body-md text-on-surface-variant">
+          Plan de estudios de <strong>{{ profile.program|default:"tu programa" }}</strong> — Semestre {{ profile.current_semester|default:"?" }}
+        </p>
+      </div>
+    </div>
+
+    {% if academic_summary.has_lost_student_status %}
+    <div class="mb-lg p-md rounded-xl bg-error-container text-on-error-container flex items-start gap-md soft-shadow border border-error">
+      <span class="material-symbols-outlined text-error text-[28px]">warning</span>
+      <div>
+        <h3 class="font-headline-sm text-headline-sm font-bold text-error">Pérdida de Calidad de Estudiante</h3>
+        <p class="font-body-md text-body-md mt-xs">Has superado el límite de intentos reprobados en una materia o tu promedio acumulado es inferior a 3.2. Tu caso será revisado por la administración.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if messages %}
+    <div class="mb-xl flex flex-col gap-sm">
+      {% for message in messages %}
+      <div class="p-sm rounded-lg font-label-md text-label-md shadow-sm {% if message.tags == 'success' %}bg-secondary-container text-on-secondary-container{% else %}bg-surface-container-high text-on-surface{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if counts.total == 0 %}
+    <!-- Estado vacío -->
+    <div class="flex flex-col items-center gap-md py-xl text-center bg-surface-container-lowest rounded-xl soft-shadow p-xl">
+      <span class="material-symbols-outlined text-[80px] text-primary opacity-20">auto_stories</span>
+      <p class="font-headline-md text-headline-md text-on-surface">No hay materias configuradas</p>
+      <p class="font-body-md text-body-md text-on-surface-variant max-w-md">
+        El administrador aún no ha configurado las materias de tu programa académico.
+      </p>
+      <a href="{% url 'student:dashboard' %}"
+         class="bg-primary text-on-primary font-label-md text-label-md px-lg py-sm rounded-lg hover:bg-on-primary-fixed-variant transition-colors">
+        Volver al dashboard
+      </a>
+    </div>
+
+    {% else %}
+
+    <!-- ── Resumen de contadores ──────────────────────────────────────── -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-md mb-xl">
+
+      <!-- En curso -->
+      <div class="bg-surface-container-lowest rounded-xl p-md soft-shadow flex items-center gap-md">
+        <div class="w-10 h-10 rounded-full bg-tertiary-fixed flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-tertiary text-[20px]">pending_actions</span>
+        </div>
+        <div>
+          <p class="font-headline-lg text-headline-lg text-on-surface leading-none">{{ counts.in_progress }}</p>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-[2px]">En curso</p>
+        </div>
+      </div>
+
+      <!-- Aprobadas -->
+      <div class="bg-surface-container-lowest rounded-xl p-md soft-shadow flex items-center gap-md">
+        <div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-secondary text-[20px]">check_circle</span>
+        </div>
+        <div>
+          <p class="font-headline-lg text-headline-lg text-on-surface leading-none">{{ counts.passed }}</p>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-[2px]">Aprobadas</p>
+        </div>
+      </div>
+
+      <!-- Reprobadas -->
+      <div class="bg-surface-container-lowest rounded-xl p-md soft-shadow flex items-center gap-md">
+        <div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-error text-[20px]">cancel</span>
+        </div>
+        <div>
+          <p class="font-headline-lg text-headline-lg text-on-surface leading-none">{{ counts.failed }}</p>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-[2px]">Reprobadas</p>
+        </div>
+      </div>
+
+      <!-- Créditos aprobados -->
+      <div class="bg-surface-container-lowest rounded-xl p-md soft-shadow flex items-center gap-md">
+        <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-primary text-[20px]">toll</span>
+        </div>
+        <div>
+          <p class="font-headline-lg text-headline-lg text-on-surface leading-none">{{ counts.credits_approved }}</p>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-[2px]">Créditos aprobados</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- SEMESTRES                                                          -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    {% for sem in sorted_semesters %}
+    <section class="mb-xl" id="section-semester-{{ sem.level }}">
+      <button onclick="toggleSection('semester-{{ sem.level }}')"
+              class="w-full flex items-center justify-between p-md bg-surface-container rounded-xl mb-md hover:brightness-95 transition-all shadow-sm">
+        <div class="flex items-center gap-md">
+          <div class="w-9 h-9 rounded-full bg-primary flex items-center justify-center">
+            <span class="font-headline-sm text-headline-sm text-on-primary font-bold">{{ sem.level }}</span>
+          </div>
+          <div class="text-left">
+            <h2 class="font-headline-md text-headline-md text-on-surface">Semestre {{ sem.level }}</h2>
+            <p class="font-label-sm text-label-sm text-on-surface-variant">
+              {{ sem.courses|length }} materia{{ sem.courses|length|pluralize:"s" }}
+              {% if sem.has_grades %} <span class="mx-1">•</span> Promedio: <strong>{{ sem.average|floatformat:1 }}</strong>{% endif %}
+            </p>
+          </div>
+        </div>
+        <span id="chevron-semester-{{ sem.level }}" class="material-symbols-outlined text-on-surface-variant transition-transform duration-200">expand_less</span>
+      </button>
+
+      <div id="body-semester-{{ sem.level }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md transition-all">
+        {% for item in sem.courses %}
+        <div class="bg-surface-container-lowest rounded-xl soft-shadow p-md border-l-4 hover:shadow-md transition-shadow
+          {% if item.status == 'PASSED' %}border-secondary
+          {% elif item.status == 'FAILED' %}border-error
+          {% elif item.status == 'IN_PROGRESS' %}border-tertiary
+          {% else %}border-outline-variant opacity-80 hover:opacity-100{% endif %}">
+          
+          <div class="flex items-start justify-between mb-sm">
+            <div class="flex-1 min-w-0">
+              <span class="inline-block px-2 py-[2px] rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm mb-xs">
+                {{ item.course.code }}
+              </span>
+              <h3 class="font-label-md text-label-md text-on-surface leading-snug">{{ item.course.name }}</h3>
+            </div>
+            
+            {% if item.status == 'PASSED' and item.grade %}
+            <div class="ml-sm flex-shrink-0 text-right mr-sm">
+              <p class="font-headline-md text-headline-md text-secondary leading-none">{{ item.grade|floatformat:1 }}</p>
+              <p class="font-label-sm text-label-sm text-on-surface-variant">nota</p>
+            </div>
+            {% elif item.status == 'FAILED' and item.grade %}
+            <div class="ml-sm flex-shrink-0 text-right mr-sm">
+              <p class="font-headline-md text-headline-md text-error leading-none">{{ item.grade|floatformat:1 }}</p>
+              <p class="font-label-sm text-label-sm text-on-surface-variant">nota</p>
+            </div>
+            {% endif %}
+
+            <button onclick="openEditModal('{{ item.course.id }}', '{{ item.record_id|default:'' }}', '{{ item.status }}', '{{ item.grade|default:0.0|stringformat:'.1f' }}', '{{ item.semester_taken }}', '{{ item.course.name|escapejs }}')" 
+                    class="material-symbols-outlined text-[20px] ml-sm flex-shrink-0 mt-xs transition-colors hover:text-on-surface
+                    {% if item.status == 'PASSED' %}text-secondary
+                    {% elif item.status == 'FAILED' %}text-error
+                    {% elif item.status == 'IN_PROGRESS' %}text-tertiary
+                    {% else %}text-outline{% endif %}" title="Editar">edit</button>
+          </div>
+          
+          <div class="flex flex-wrap gap-sm mt-md pt-md border-t border-outline-variant">
+            <span class="flex items-center gap-xs font-label-sm text-label-sm text-on-surface-variant">
+              <span class="material-symbols-outlined text-[14px]">toll</span>{{ item.course.credits }} créditos
+            </span>
+            
+            <span class="ml-auto inline-flex items-center gap-xs px-sm py-[2px] rounded-full font-label-sm text-label-sm
+              {% if item.status == 'PASSED' %}bg-secondary-container text-on-secondary-container
+              {% elif item.status == 'FAILED' %}bg-error-container text-on-error-container
+              {% elif item.status == 'IN_PROGRESS' %}bg-tertiary-fixed text-on-tertiary-fixed
+              {% else %}bg-surface-container-high text-on-surface-variant{% endif %}">
+              
+              <span class="w-2 h-2 rounded-full
+                {% if item.status == 'PASSED' %}bg-secondary
+                {% elif item.status == 'FAILED' %}bg-error
+                {% elif item.status == 'IN_PROGRESS' %}bg-tertiary
+                {% else %}bg-outline{% endif %}"></span>
+              
+              {% if item.status == 'PASSED' %}Aprobada
+              {% elif item.status == 'FAILED' %}Reprobada
+              {% elif item.status == 'IN_PROGRESS' %}En curso
+              {% else %}Pendiente{% endif %}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- BANCO DE MATERIAS PENDIENTES                                       -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    {% if banco_materias %}
+    <section class="mb-xl mt-2xl" id="section-banco">
+      <button onclick="toggleSection('banco')"
+              class="w-full flex items-center justify-between p-md bg-surface-container rounded-xl mb-md hover:bg-surface-container-high transition-all">
+        <div class="flex items-center gap-md">
+          <div class="w-9 h-9 rounded-full bg-surface-container-highest flex items-center justify-center">
+            <span class="material-symbols-outlined text-on-surface-variant text-[18px]">radio_button_unchecked</span>
+          </div>
+          <div class="text-left">
+            <h2 class="font-headline-md text-headline-md text-on-surface">Banco de Materias (Pendientes o para repetir)</h2>
+            <p class="font-label-sm text-label-sm text-on-surface-variant">{{ banco_materias|length }} materia{{ banco_materias|length|pluralize:"s" }} disponibles para asignar a un semestre</p>
+          </div>
+        </div>
+        <span id="chevron-banco" class="material-symbols-outlined text-on-surface-variant transition-transform duration-200">expand_less</span>
+      </button>
+
+      <div id="body-banco" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
+        {% for item in banco_materias %}
+        <div class="bg-surface-container-lowest rounded-xl soft-shadow p-md border-l-4 border-outline-variant hover:shadow-md transition-shadow opacity-80 hover:opacity-100">
+          <div class="flex items-start justify-between mb-sm">
+            <div class="flex-1 min-w-0">
+              <span class="inline-block px-2 py-[2px] rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm mb-xs">
+                {{ item.course.code }}
+              </span>
+              <h3 class="font-label-md text-label-md text-on-surface leading-snug">{{ item.course.name }}</h3>
+            </div>
+            <button onclick="openEditModal('{{ item.course.id }}', '', 'IN_PROGRESS', '0.0', '{{ item.semester_taken }}', '{{ item.course.name|escapejs }}')" class="material-symbols-outlined text-outline text-[20px] ml-sm flex-shrink-0 mt-xs transition-colors hover:text-on-surface" title="Añadir a un semestre">add_circle</button>
+          </div>
+          <div class="flex flex-wrap gap-sm mt-md pt-md border-t border-outline-variant">
+            <span class="flex items-center gap-xs font-label-sm text-label-sm text-on-surface-variant">
+              <span class="material-symbols-outlined text-[14px]">layers</span>Nivel base: {{ item.course.level }}
+            </span>
+            <span class="flex items-center gap-xs font-label-sm text-label-sm text-on-surface-variant">
+              <span class="material-symbols-outlined text-[14px]">toll</span>{{ item.course.credits }} créditos
+            </span>
+            {% if item.attempt > 1 %}
+            <span class="ml-auto inline-flex items-center gap-xs px-sm py-[2px] rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm">
+              <span class="w-2 h-2 rounded-full bg-error"></span>Intento {{ item.attempt }}
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% endif %}{# /counts.total #}
+
+  </div><!-- /content -->
+</main>
+
+<script>
+  /**
+   * Colapsa/expande una sección de materias.
+   */
+  function toggleSection(id) {
+    const body    = document.getElementById('body-' + id);
+    const chevron = document.getElementById('chevron-' + id);
+    if (!body || !chevron) return;
+
+    const isOpen = body.style.display !== 'none';
+    body.style.display      = isOpen ? 'none' : 'grid';
+    chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+  }
+
+  // Lógica del modal de edición
+  function openEditModal(courseId, recordId, status, grade, semesterTaken, courseName) {
+    document.getElementById('modal-course-id').value = courseId;
+    document.getElementById('modal-record-id').value = recordId;
+    document.getElementById('modal-status').value = status;
+    document.getElementById('modal-grade').value = grade;
+    
+    const semInput = document.getElementById('modal-semester-taken');
+    semInput.value = semesterTaken;
+    
+    // Bloquear edición de semestre si la materia fue reprobada
+    if (status === 'FAILED' && recordId !== '') {
+      semInput.disabled = true;
+      semInput.title = "No puedes cambiar el semestre de un intento reprobado.";
+    } else {
+      semInput.disabled = false;
+      semInput.title = "";
+    }
+
+    document.getElementById('modal-course-name').innerText = courseName;
+    document.getElementById('edit-modal').classList.remove('hidden');
+  }
+
+  function closeEditModal() {
+    document.getElementById('edit-modal').classList.add('hidden');
+  }
+
+  function saveEditModal() {
+    const courseId = document.getElementById('modal-course-id').value;
+    const recordId = document.getElementById('modal-record-id').value;
+    const status = document.getElementById('modal-status').value;
+    const grade = document.getElementById('modal-grade').value;
+    const semesterTaken = document.getElementById('modal-semester-taken').value;
+
+    fetch('{% url "student:courses_update" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        course_id: courseId,
+        record_id: recordId,
+        status: status,
+        grade: grade,
+        semester_taken: semesterTaken
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if(data.success) {
+        window.location.reload();
+      } else {
+        alert('Error: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error("Fetch error:", error);
+      alert('Error en la conexión.');
+    });
+  }
+</script>
+
+<!-- Modal Edición -->
+<div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-all">
+  <div class="bg-surface rounded-xl shadow-lg w-full max-w-sm p-xl soft-shadow border border-outline-variant">
+    <div class="flex justify-between items-center mb-md">
+      <h3 class="font-headline-md text-headline-md text-on-surface">Editar Materia</h3>
+      <button onclick="closeEditModal()" class="material-symbols-outlined text-on-surface-variant hover:text-error transition-colors">close</button>
+    </div>
+    
+    <p id="modal-course-name" class="font-label-md text-label-md text-on-surface-variant mb-lg"></p>
+    
+    <input type="hidden" id="modal-course-id">
+    <input type="hidden" id="modal-record-id">
+    
+    <div class="space-y-md mb-xl">
+      <div>
+        <label class="block font-label-sm text-label-sm text-on-surface mb-xs">Semestre asignado</label>
+        <input type="number" id="modal-semester-taken" min="1" max="20" class="w-full p-sm rounded-lg border border-outline bg-surface-container-lowest text-on-surface font-body-md shadow-sm outline-none focus:border-primary transition-colors" required>
+      </div>
+      <div>
+        <label class="block font-label-sm text-label-sm text-on-surface mb-xs">Estado de la materia</label>
+        <select id="modal-status" class="w-full p-sm rounded-lg border border-outline bg-surface-container-lowest text-on-surface font-body-md shadow-sm outline-none focus:border-primary transition-colors">
+          <option value="PASSED">Aprobada</option>
+          <option value="FAILED">Reprobada</option>
+          <option value="IN_PROGRESS">En curso</option>
+          <option value="PENDING">Eliminar registro (Mover al banco)</option>
+        </select>
+      </div>
+      <div>
+        <label class="block font-label-sm text-label-sm text-on-surface mb-xs">Nota Final (opcional)</label>
+        <input type="number" id="modal-grade" step="0.1" min="0" max="5.0" class="w-full p-sm rounded-lg border border-outline bg-surface-container-lowest text-on-surface font-body-md shadow-sm outline-none focus:border-primary transition-colors">
+      </div>
+    </div>
+    
+    <div class="flex justify-end gap-sm">
+      <button onclick="closeEditModal()" class="px-md py-sm font-label-md text-label-md text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors">Cancelar</button>
+      <button onclick="saveEditModal()" class="px-md py-sm font-label-md text-label-md bg-primary text-on-primary rounded-lg hover:brightness-95 transition-all shadow-sm">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

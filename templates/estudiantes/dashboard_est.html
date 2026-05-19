@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Mi Dashboard — EduPilot{% endblock %}
+{% block body_class %}flex{% endblock %}
+
+{% block content %}
+<!-- ════════════════════ SIDEBAR ════════════════════ -->
+<aside class="hidden md:flex flex-col h-full p-md gap-base bg-surface/80 backdrop-blur-md border-r border-outline-variant/30 fixed left-0 top-0 w-64 z-40 shadow-sm">
+  <!-- Brand -->
+  <div class="mb-lg px-xs mt-xs">
+    <div class="flex items-center gap-sm mb-xs">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-primary-fixed flex items-center justify-center flex-shrink-0 shadow-soft">
+        <span class="material-symbols-outlined text-on-primary text-xl">school</span>
+      </div>
+      <h2 class="text-headline-md font-headline-md font-bold text-primary tracking-tight">EduPilot</h2>
+    </div>
+    <p class="font-body-sm text-body-sm text-on-surface-variant font-medium bg-surface-container-lowest/50 px-2 py-1 rounded-lg inline-block border border-outline-variant/20">
+      {{ request.user.studentprofile.program|default:"Mi programa" }}
+    </p>
+  </div>
+  
+  <!-- Nav -->
+  <nav class="flex-1 flex flex-col gap-xs mt-sm">
+    <a class="flex items-center gap-base px-md py-sm rounded-xl transition-all duration-300 {% if active_nav == 'dashboard' %}bg-primary text-on-primary shadow-soft translate-x-1{% else %}text-on-surface-variant hover:bg-surface-container hover:text-primary{% endif %}"
+       href="{% url 'student:dashboard' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'dashboard' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>space_dashboard</span>
+      <span class="font-label-md text-label-md">Dashboard</span>
+    </a>
+    <a class="flex items-center gap-base px-md py-sm rounded-xl transition-all duration-300 {% if active_nav == 'courses' %}bg-primary text-on-primary shadow-soft translate-x-1{% else %}text-on-surface-variant hover:bg-surface-container hover:text-primary{% endif %}"
+       href="{% url 'student:courses' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'courses' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>auto_stories</span>
+      <span class="font-label-md text-label-md">Materias</span>
+    </a>
+    <a class="flex items-center gap-base px-md py-sm rounded-xl transition-all duration-300 {% if active_nav == 'routes' %}bg-primary text-on-primary shadow-soft translate-x-1{% else %}text-on-surface-variant hover:bg-surface-container hover:text-primary{% endif %}"
+       href="{% url 'student:routes' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'routes' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>route</span>
+      <span class="font-label-md text-label-md">Rutas Académicas</span>
+    </a>
+  </nav>
+
+  <!-- Bottom Profile -->
+  <div class="mt-auto border-t border-outline-variant/30 pt-md flex flex-col gap-xs">
+    <div class="flex items-center gap-sm p-sm rounded-xl bg-surface-container-lowest/50 border border-outline-variant/20 shadow-sm mb-xs group">
+      <div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-md shadow-inner group-hover:scale-105 transition-transform">
+        {{ request.user.first_name.0|upper|default:"U" }}
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="font-label-md text-label-md text-on-surface truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
+        <p class="font-label-sm text-label-sm text-primary">Semestre {{ request.user.studentprofile.current_semester|default:"—" }}</p>
+      </div>
+    </div>
+    <a href="{% url 'authentication:logout' %}" class="flex items-center justify-center gap-2 px-md py-sm text-error hover:bg-error-container hover:text-on-error-container rounded-xl transition-colors font-label-md text-label-md border border-transparent hover:border-error/20">
+      <span class="material-symbols-outlined text-[18px]">logout</span>
+      Cerrar sesión
+    </a>
+  </div>
+</aside>
+
+<!-- ════════════════════ MAIN ════════════════════ -->
+<main class="flex-1 md:ml-64 flex flex-col min-h-screen">
+
+  <!-- Content -->
+  <div class="p-gutter md:p-margin max-w-7xl mx-auto w-full flex-1 mt-md">
+
+    <!-- Breadcrumbs -->
+    <nav aria-label="Breadcrumb" class="flex items-center gap-xs mb-lg">
+      <span class="font-label-md text-label-md text-on-surface-variant">Inicio</span>
+      <span class="material-symbols-outlined text-on-surface-variant text-[16px]">chevron_right</span>
+      <span aria-current="page" class="font-label-md text-label-md text-primary">Dashboard Estudiante</span>
+    </nav>
+
+    <!-- Page Header -->
+    {% if academic_summary.has_lost_student_status %}
+    <div class="mb-lg p-md rounded-xl bg-error-container text-on-error-container flex items-start gap-md soft-shadow border border-error">
+      <span class="material-symbols-outlined text-error text-[28px]">warning</span>
+      <div>
+        <h3 class="font-headline-sm text-headline-sm font-bold text-error">Pérdida de Calidad de Estudiante</h3>
+        <p class="font-body-md text-body-md mt-xs">Has superado el límite de intentos reprobados en una materia o tu promedio acumulado es inferior a 3.2. Tu caso será revisado por la administración.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="mb-xl flex flex-col md:flex-row md:items-end justify-between gap-md">
+      <div>
+        <h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-xs">Resumen Académico</h1>
+        <p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-sm">
+          <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">school</span>
+          {{ request.user.studentprofile.program|default:"Programa no configurado" }}
+        </p>
+      </div>
+      <a href="{% url 'student:routes' %}" class="self-start bg-primary text-on-primary font-label-md text-label-md py-sm px-md rounded-lg hover:bg-on-primary-fixed-variant transition-colors flex items-center gap-xs shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">route</span>
+        Ver mi ruta académica
+      </a>
+    </div>
+
+    <!-- Bento Grid Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-md mb-xl">
+
+      <!-- Avance % -->
+      <div class="col-span-2 md:col-span-1 bg-primary text-on-primary rounded-xl p-md flex flex-col justify-between soft-shadow relative overflow-hidden">
+        <div class="absolute -right-6 -top-6 opacity-10">
+          <span class="material-symbols-outlined text-[120px]">trending_up</span>
+        </div>
+        <div class="flex items-center gap-sm mb-md relative z-10">
+          <div class="p-sm bg-on-primary-fixed-variant rounded-lg">
+            <span class="material-symbols-outlined text-on-primary">donut_large</span>
+          </div>
+          <span class="font-label-md text-label-md text-primary-fixed-dim">Avance</span>
+        </div>
+        <div class="relative z-10">
+          <p class="font-headline-xl text-headline-xl">{{ academic_summary.progress_pct|default:"0" }}%</p>
+          <p class="font-label-sm text-label-sm text-primary-fixed-dim mt-xs">Del programa total</p>
+        </div>
+      </div>
+
+      <!-- Créditos -->
+      <div class="bg-surface-container-lowest rounded-xl p-md flex flex-col justify-between soft-shadow">
+        <div class="flex items-center gap-sm mb-md">
+          <div class="p-sm bg-surface-container-high rounded-lg text-primary">
+            <span class="material-symbols-outlined">toll</span>
+          </div>
+          <span class="font-label-md text-label-md text-on-surface-variant">Créditos</span>
+        </div>
+        <div>
+          <p class="font-headline-lg text-headline-lg text-on-surface">{{ academic_summary.credits_approved|default:"0" }}</p>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-xs">Aprobados</p>
+        </div>
+      </div>
+
+      <!-- Aprobadas -->
+      <div class="bg-surface-container-lowest rounded-xl p-md flex flex-col justify-between soft-shadow">
+        <div class="flex items-center gap-sm mb-md">
+          <div class="p-sm bg-secondary-container rounded-lg text-secondary">
+            <span class="material-symbols-outlined">check_circle</span>
+          </div>
+          <span class="font-label-md text-label-md text-on-surface-variant">Aprobadas</span>
+        </div>
+        <div>
+          <p class="font-headline-lg text-headline-lg text-on-surface">{{ academic_summary.courses_passed|default:"0" }}</p>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-xs">Materias</p>
+        </div>
+      </div>
+
+      <!-- En Curso -->
+      <div class="bg-surface-container-lowest rounded-xl p-md flex flex-col justify-between soft-shadow">
+        <div class="flex items-center gap-sm mb-md">
+          <div class="p-sm bg-tertiary-fixed rounded-lg text-tertiary">
+            <span class="material-symbols-outlined">pending_actions</span>
+          </div>
+          <span class="font-label-md text-label-md text-on-surface-variant">En curso</span>
+        </div>
+        <div>
+          <p class="font-headline-lg text-headline-lg text-on-surface">{{ academic_summary.courses_in_progress|default:"0" }}</p>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-xs">Semestre actual</p>
+        </div>
+      </div>
+
+      <!-- Reprobadas -->
+      <div class="bg-surface-container-lowest rounded-xl p-md flex flex-col justify-between soft-shadow">
+        <div class="flex items-center gap-sm mb-md">
+          <div class="p-sm bg-error-container rounded-lg text-error">
+            <span class="material-symbols-outlined">cancel</span>
+          </div>
+          <span class="font-label-md text-label-md text-on-surface-variant">Reprobadas</span>
+        </div>
+        <div>
+          <p class="font-headline-lg text-headline-lg text-on-surface">{{ academic_summary.courses_failed|default:"0" }}</p>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-xs">Histórico</p>
+        </div>
+      </div>
+
+    </div><!-- /bento -->
+
+    <!-- Tabla de Historial -->
+    <div class="bg-surface-container-lowest rounded-xl soft-shadow overflow-hidden">
+      <div class="p-md border-b border-outline-variant flex justify-between items-center">
+        <h3 class="font-headline-md text-headline-md text-on-surface">Historial de Materias</h3>
+        <div class="flex gap-sm">
+          <button class="p-sm rounded-lg bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface flex items-center justify-center">
+            <span class="material-symbols-outlined">filter_list</span>
+          </button>
+          <button class="p-sm rounded-lg bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface flex items-center justify-center">
+            <span class="material-symbols-outlined">download</span>
+          </button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[700px]">
+          <thead>
+            <tr class="bg-surface-container-low border-b border-outline-variant">
+              <th class="py-sm px-md font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Código</th>
+              <th class="py-sm px-md font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Materia</th>
+              <th class="py-sm px-md font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Semestre</th>
+              <th class="py-sm px-md font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-center">Créditos</th>
+              <th class="py-sm px-md font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-center">Nota</th>
+              <th class="py-sm px-md font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Estado</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-outline-variant">
+            {% for item in all_courses_with_status %}
+            <tr class="hover:bg-surface-container-lowest transition-colors">
+              <td class="py-md px-md font-body-md text-body-md text-on-surface-variant">{{ item.course.code }}</td>
+              <td class="py-md px-md font-label-md text-label-md text-on-surface">{{ item.course.name }}</td>
+              <td class="py-md px-md font-body-md text-body-md text-on-surface-variant">{{ item.course.level }}</td>
+              <td class="py-md px-md font-body-md text-body-md text-on-surface-variant text-center">{{ item.course.credits }}</td>
+              <td class="py-md px-md font-label-md text-label-md text-center {% if item.status == 'FAILED' %}text-error{% else %}text-on-surface{% endif %}">
+                {% if item.grade %}{{ item.grade }}{% else %}—{% endif %}
+              </td>
+              <td class="py-md px-md">
+                {% if item.status == 'PASSED' %}
+                  <span class="inline-flex items-center gap-xs px-sm py-[2px] rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">
+                    <span class="w-2 h-2 rounded-full bg-secondary"></span>Aprobada
+                  </span>
+                {% elif item.status == 'FAILED' %}
+                  <span class="inline-flex items-center gap-xs px-sm py-[2px] rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm">
+                    <span class="w-2 h-2 rounded-full bg-error"></span>Reprobada
+                  </span>
+                {% elif item.status == 'IN_PROGRESS' %}
+                  <span class="inline-flex items-center gap-xs px-sm py-[2px] rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm">
+                    <span class="w-2 h-2 rounded-full bg-tertiary"></span>En curso
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-xs px-sm py-[2px] rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">
+                    <span class="w-2 h-2 rounded-full bg-outline"></span>Pendiente
+                  </span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="p-xl text-center">
+                <div class="flex flex-col items-center gap-md py-lg">
+                  <span class="material-symbols-outlined text-[64px] text-primary opacity-20">history_edu</span>
+                  <p class="font-headline-md text-headline-md text-on-surface">No hay materias en tu programa</p>
+                  <p class="font-body-md text-body-md text-on-surface-variant max-w-md">El administrador aún no ha configurado las materias de tu programa académico.</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /table -->
+
+  </div><!-- /content -->
+</main>
+{% endblock %}

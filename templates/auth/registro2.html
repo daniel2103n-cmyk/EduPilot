@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Crear cuenta — Paso 2 — EduPilot{% endblock %}
+{% block body_class %}flex items-center justify-center p-md{% endblock %}
+
+{% block content %}
+<main class="w-full max-w-[520px] bg-surface-container-lowest rounded-soft shadow-[0_16px_32px_rgba(0,43,128,0.04)] p-[32px] md:p-[48px] relative overflow-hidden">
+
+  <!-- Logo -->
+  <div class="flex justify-center mb-margin">
+    <div class="flex items-center gap-sm">
+      <span class="material-symbols-outlined text-primary text-[32px]" style="font-variation-settings: 'FILL' 1;">school</span>
+      <span class="font-headline-md text-headline-md font-bold text-primary">EduPilot</span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="text-center mb-margin">
+    <h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-xs">Información académica</h1>
+    <p class="font-body-md text-body-md text-on-surface-variant">Paso 2 de 2: Datos de tu programa</p>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="w-full bg-surface-variant rounded-full h-2 mb-lg">
+    <div class="bg-primary h-2 rounded-full w-full transition-all duration-300"></div>
+  </div>
+
+  <!-- Datos del paso 1 (readonly) -->
+  {% if step1_data %}
+  <div class="bg-surface-container-low rounded-lg p-sm mb-md flex items-center gap-sm text-on-surface-variant">
+    <span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+    <span class="font-label-md text-label-md">Registrando como: <strong class="text-on-surface">{{ step1_data.username }}</strong></span>
+    <a href="{% url 'authentication:register_step1' %}" class="ml-auto text-primary font-label-sm hover:underline">Editar</a>
+  </div>
+  {% endif %}
+
+  <!-- Form -->
+  <form class="space-y-gutter" method="post" action="{% url 'authentication:register_step2' %}">
+    {% csrf_token %}
+
+    <!-- Programa académico -->
+    <div>
+      <label class="block font-label-md text-label-md text-on-surface mb-xs" for="program">Programa académico <span class="text-error">*</span></label>
+      <div class="relative">
+        <select class="w-full pl-[40px] pr-10 py-sm rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none font-body-md text-body-md appearance-none cursor-pointer" id="program" name="program" required>
+          <option value="" disabled selected>Seleccione un programa...</option>
+          {% for prog in programs %}
+            <option value="{{ prog.id }}">{{ prog.name }}</option>
+          {% endfor %}
+        </select>
+        <div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+          <span class="material-symbols-outlined text-on-surface-variant">school</span>
+        </div>
+        <span class="material-symbols-outlined absolute right-3 top-1/2 transform -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+      </div>
+    </div>
+
+    <!-- Semestre actual -->
+    <div>
+      <label class="block font-label-md text-label-md text-on-surface mb-xs" for="current_semester">Semestre actual <span class="text-error">*</span></label>
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+          <span class="material-symbols-outlined text-on-surface-variant">calendar_month</span>
+        </div>
+        <input class="block w-full pl-[40px] pr-sm py-sm bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-shadow hover:border-outline"
+          id="current_semester" name="current_semester" placeholder="Ej: 4" min="1" max="12" required type="number"/>
+      </div>
+    </div>
+
+    <!-- Contraseña -->
+    <div>
+      <label class="block font-label-md text-label-md text-on-surface mb-xs" for="password1">Contraseña <span class="text-error">*</span></label>
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+          <span class="material-symbols-outlined text-on-surface-variant">lock</span>
+        </div>
+        <input class="block w-full pl-[40px] pr-sm py-sm bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-shadow"
+          id="password1" name="password1" placeholder="••••••••" required type="password"/>
+      </div>
+    </div>
+
+    <!-- Confirmar contraseña -->
+    <div>
+      <label class="block font-label-md text-label-md text-on-surface mb-xs" for="password2">Confirmar contraseña <span class="text-error">*</span></label>
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+          <span class="material-symbols-outlined text-on-surface-variant">lock_reset</span>
+        </div>
+        <input class="block w-full pl-[40px] pr-sm py-sm bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-shadow"
+          id="password2" name="password2" placeholder="••••••••" required type="password"/>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="pt-base flex justify-between gap-base">
+      <a href="{% url 'authentication:register_step1' %}"
+        class="px-md py-sm rounded-lg font-label-md text-label-md text-primary bg-surface-container hover:bg-surface-container-high transition-colors flex items-center gap-xs">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        Atrás
+      </a>
+      <button class="flex items-center gap-xs px-md py-sm rounded-lg font-label-md text-label-md text-on-primary bg-primary hover:bg-on-primary-fixed-variant transition-colors shadow-sm" type="submit">
+        <span class="material-symbols-outlined text-[18px]">check</span>
+        Finalizar registro
+      </button>
+    </div>
+  </form>
+</main>
+{% endblock %}

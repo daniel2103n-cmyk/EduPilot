@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Dashboard Administrador — EduPilot{% endblock %}
+{% block body_class %}flex{% endblock %}
+
+{% block content %}
+<!-- ════════════════════ SIDEBAR ════════════════════ -->
+<aside class="fixed top-0 left-0 h-full w-64 bg-inverse-surface text-inverse-on-surface shadow-lg z-40 flex flex-col p-md gap-base">
+  <!-- Brand -->
+  <div class="flex items-center gap-sm mb-lg px-xs mt-xs">
+    <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-soft">
+      <span class="material-symbols-outlined text-on-primary text-xl" style="font-variation-settings: 'FILL' 1;">manage_accounts</span>
+    </div>
+    <div class="flex flex-col">
+      <span class="font-headline-md text-headline-md font-bold tracking-tight">EduPilot</span>
+      <span class="font-label-sm text-label-sm text-inverse-on-surface/70">Panel Administrativo</span>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="flex flex-col gap-xs flex-1 mt-md">
+    <a class="flex items-center gap-base px-md py-sm rounded-lg transition-all duration-300 {% if active_nav == 'dashboard' %}bg-primary text-on-primary shadow-md{% else %}text-inverse-on-surface/80 hover:bg-inverse-on-surface/10 hover:text-inverse-on-surface{% endif %}"
+       href="{% url 'admin_panel:dashboard' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'dashboard' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>space_dashboard</span>
+      <span class="font-label-md text-label-md">Dashboard</span>
+    </a>
+    <a class="flex items-center gap-base px-md py-sm rounded-lg transition-all duration-300 {% if active_nav == 'students' %}bg-primary text-on-primary shadow-md{% else %}text-inverse-on-surface/80 hover:bg-inverse-on-surface/10 hover:text-inverse-on-surface{% endif %}"
+       href="{% url 'admin_panel:students' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'students' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>groups</span>
+      <span class="font-label-md text-label-md">Estudiantes</span>
+    </a>
+    <a class="flex items-center gap-base px-md py-sm rounded-lg transition-all duration-300 {% if active_nav == 'courses' %}bg-primary text-on-primary shadow-md{% else %}text-inverse-on-surface/80 hover:bg-inverse-on-surface/10 hover:text-inverse-on-surface{% endif %}"
+       href="{% url 'admin_panel:courses' %}">
+      <span class="material-symbols-outlined" {% if active_nav == 'courses' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>menu_book</span>
+      <span class="font-label-md text-label-md">Materias</span>
+    </a>
+  </nav>
+
+  <!-- Bottom Profile -->
+  <div class="mt-auto pt-md border-t border-inverse-on-surface/10 flex flex-col gap-sm">
+    <div class="flex items-center gap-sm px-xs mb-xs">
+      <div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-sm shadow-sm">
+        {{ request.user.first_name.0|upper|default:"A" }}
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="font-label-sm text-label-sm truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
+        <p class="font-body-sm text-[11px] text-inverse-on-surface/60 truncate">{{ request.user.email }}</p>
+      </div>
+    </div>
+    <a href="{% url 'authentication:logout' %}" class="flex items-center gap-base px-md py-sm text-error/90 hover:bg-error-container/10 hover:text-error rounded-lg transition-colors">
+      <span class="material-symbols-outlined text-[20px]">logout</span>
+      <span class="font-label-md text-label-md">Cerrar sesión</span>
+    </a>
+  </div>
+</aside>
+
+<!-- ════════════════════ MAIN ════════════════════ -->
+<main class="ml-64 flex-1 flex flex-col min-h-screen">
+
+  <!-- Canvas -->
+  <div class="p-gutter flex flex-col gap-margin flex-1 mt-md">
+
+    <!-- Page Header -->
+    <div>
+      <h1 class="font-headline-xl text-headline-xl text-primary mb-xs">Resumen General</h1>
+      <p class="font-body-lg text-body-lg text-on-surface-variant">Bienvenido, {{ request.user.get_full_name|default:request.user.username }}.</p>
+    </div>
+
+    <!-- Metrics Bento Grid -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+
+      <div class="bg-surface-container-lowest rounded-soft p-md shadow-soft flex flex-col gap-sm border border-transparent hover:border-primary-fixed transition-colors">
+        <div class="flex items-center justify-between">
+          <div class="w-12 h-12 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">school</span>
+          </div>
+          <span class="font-label-sm text-label-sm text-on-secondary-container bg-secondary-container px-xs py-xs rounded">Programas</span>
+        </div>
+        <div class="mt-xs">
+          <h3 class="font-body-md text-body-md text-on-surface-variant">Programas</h3>
+          <p class="font-headline-lg text-headline-lg text-on-surface">{{ stats.total_programs|default:"—" }}</p>
+        </div>
+      </div>
+
+      <div class="bg-surface-container-lowest rounded-soft p-md shadow-soft flex flex-col gap-sm border border-transparent hover:border-primary-fixed transition-colors">
+        <div class="flex items-center justify-between">
+          <div class="w-12 h-12 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+          </div>
+          <span class="font-label-sm text-label-sm text-on-secondary-container bg-secondary-container px-xs py-xs rounded">Estudiantes</span>
+        </div>
+        <div class="mt-xs">
+          <h3 class="font-body-md text-body-md text-on-surface-variant">Estudiantes</h3>
+          <p class="font-headline-lg text-headline-lg text-on-surface">{{ stats.total_students|default:"—" }}</p>
+        </div>
+      </div>
+
+      <div class="bg-surface-container-lowest rounded-soft p-md shadow-soft flex flex-col gap-sm border border-transparent hover:border-primary-fixed transition-colors">
+        <div class="flex items-center justify-between">
+          <div class="w-12 h-12 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">book</span>
+          </div>
+          <span class="font-label-sm text-label-sm text-outline px-xs py-xs rounded">Materias</span>
+        </div>
+        <div class="mt-xs">
+          <h3 class="font-body-md text-body-md text-on-surface-variant">Materias Activas</h3>
+          <p class="font-headline-lg text-headline-lg text-on-surface">{{ stats.total_courses|default:"—" }}</p>
+        </div>
+      </div>
+
+      <div class="bg-surface-container-lowest rounded-soft p-md shadow-soft flex flex-col gap-sm border border-transparent hover:border-primary-fixed transition-colors">
+        <div class="flex items-center justify-between">
+          <div class="w-12 h-12 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+          </div>
+          <span class="font-label-sm text-label-sm text-on-tertiary-container bg-tertiary-fixed px-xs py-xs rounded">Prereqs</span>
+        </div>
+        <div class="mt-xs">
+          <h3 class="font-body-md text-body-md text-on-surface-variant">Prerrequisitos</h3>
+          <p class="font-headline-lg text-headline-lg text-on-surface">{{ stats.total_prerequisites|default:"—" }}</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Quick Access -->
+    <section class="mt-md">
+      <h2 class="font-headline-md text-headline-md text-on-surface mb-gutter">Accesos Directos</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+
+        <a class="group bg-surface-container-lowest rounded-soft p-md shadow-soft flex items-center gap-md hover:bg-surface-container-low transition-colors duration-200"
+           href="{% url 'admin_panel:students' %}">
+          <div class="w-16 h-16 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center group-hover:scale-105 transition-transform">
+            <span class="material-symbols-outlined" style="font-size: 32px;">group</span>
+          </div>
+          <div class="flex-1">
+            <h3 class="font-headline-md text-headline-md text-primary mb-xs">Directorio de Estudiantes</h3>
+            <p class="font-body-md text-body-md text-on-surface-variant">Consulta matrículas, expedientes y progreso académico.</p>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+        </a>
+
+        <a class="group bg-surface-container-lowest rounded-soft p-md shadow-soft flex items-center gap-md hover:bg-surface-container-low transition-colors duration-200"
+           href="{% url 'admin_panel:courses' %}">
+          <div class="w-16 h-16 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center group-hover:scale-105 transition-transform">
+            <span class="material-symbols-outlined" style="font-size: 32px;">book</span>
+          </div>
+          <div class="flex-1">
+            <h3 class="font-headline-md text-headline-md text-primary mb-xs">Catálogo de Materias</h3>
+            <p class="font-body-md text-body-md text-on-surface-variant">Administra asignaturas, créditos y prerrequisitos.</p>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+        </a>
+
+      </div>
+    </section>
+
+  </div><!-- /canvas -->
+</main>
+{% endblock %}

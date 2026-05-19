@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Iniciar Sesión — EduPilot{% endblock %}
+{% block body_class %}flex flex-col md:flex-row{% endblock %}
+
+{% block content %}
+<!-- Left Panel: Branding & Illustration (Hidden on Mobile) -->
+<div class="hidden md:flex md:w-1/2 bg-gradient-to-br from-primary to-on-primary-fixed relative overflow-hidden flex-col justify-center items-center p-xl">
+  <!-- Background decorative elements -->
+  <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 20% 30%, #ffffff 2px, transparent 2px); background-size: 40px 40px;"></div>
+  <div class="absolute -top-32 -left-32 w-96 h-96 bg-primary-fixed-dim rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+  <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-surface-tint rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+  <div class="relative z-10 flex flex-col items-center max-w-lg text-center">
+    <!-- Logo -->
+    <div class="flex items-center gap-sm mb-lg">
+      <span class="material-symbols-outlined text-5xl text-on-primary" style="font-variation-settings: 'FILL' 1;">school</span>
+      <h1 class="font-headline-xl text-headline-xl text-on-primary">EduPilot</h1>
+    </div>
+    <h2 class="font-headline-md text-headline-md text-primary-fixed mb-xl">Planifica tu camino académico</h2>
+    <!-- Illustration -->
+    <div class="w-full max-w-md aspect-square relative rounded-2xl overflow-hidden shadow-2xl border border-primary-fixed-dim/20">
+      <img
+        alt="Ilustración de rutas académicas"
+        class="w-full h-full object-cover mix-blend-luminosity opacity-80"
+        src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1sv8s8gSG6WMxojSymuFS-vOaDCGYAa5G28PLFQSrc5QCXDkVcYvhLd6W3FCS8-o-a-dNi3wFz4N9GQrTJHsfcLuQ3DlK398HaYX4CvENl4hqczESQIZi4ZlOZKMG0sgMsanlIFDPzgmhKsCzn2YaowA8lq3NQVCZ4Ibxmo_wPpdzXz7HqiZad_7CtDBtGy1H9DKhP4svi0fJ6zkjHbEBvGl0wUwxBsIGG5bcy2jgJShrKqL1ikakfwKSti5IPpsDo47rug10iEao"/>
+      <div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Right Panel: Login Form -->
+<div class="w-full md:w-1/2 flex justify-center items-center p-gutter min-h-screen relative bg-surface-bright">
+  <!-- Mobile Logo -->
+  <div class="absolute top-gutter left-gutter flex md:hidden items-center gap-base">
+    <span class="material-symbols-outlined text-3xl text-primary" style="font-variation-settings: 'FILL' 1;">school</span>
+    <span class="font-headline-md text-headline-md text-primary">EduPilot</span>
+  </div>
+
+  <div class="w-full max-w-md bg-surface-container-lowest rounded-soft p-margin soft-shadow border border-surface-variant z-10">
+    <div class="text-center mb-margin">
+      <h2 class="font-headline-lg text-headline-lg text-on-surface mb-base">Iniciar sesión</h2>
+      <p class="font-body-md text-body-md text-on-surface-variant">Bienvenido de nuevo a tu portal académico.</p>
+    </div>
+
+    <form class="flex flex-col gap-md" method="post" action="{% url 'authentication:login' %}">
+      {% csrf_token %}
+
+      <!-- Username/Email Field -->
+      <div class="flex flex-col gap-xs">
+        <label class="font-label-md text-label-md text-on-surface" for="username">Correo electrónico</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-outline">
+            <span class="material-symbols-outlined text-[20px]">mail</span>
+          </div>
+          <input
+            class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-sm pl-lg pr-sm font-body-md text-body-md text-on-surface placeholder:text-outline-variant focus:border-primary focus:border-[2px] focus:ring-4 focus:ring-primary-container/30 focus:outline-none transition-all duration-200"
+            id="username" name="username" placeholder="usuario o correo@institucion.edu" required type="text"/>
+        </div>
+      </div>
+
+      <!-- Password Field -->
+      <div class="flex flex-col gap-xs">
+        <label class="font-label-md text-label-md text-on-surface" for="password">Contraseña</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-outline">
+            <span class="material-symbols-outlined text-[20px]">lock</span>
+          </div>
+          <input
+            class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-sm pl-lg pr-lg font-body-md text-body-md text-on-surface placeholder:text-outline-variant focus:border-primary focus:border-[2px] focus:ring-4 focus:ring-primary-container/30 focus:outline-none transition-all duration-200"
+            id="password" name="password" placeholder="••••••••" required type="password"/>
+          <button aria-label="Mostrar u ocultar contraseña" class="absolute inset-y-0 right-0 pr-sm flex items-center text-outline hover:text-on-surface transition-colors focus:outline-none" type="button"
+            onclick="const i=document.getElementById('password'); i.type=i.type==='password'?'text':'password'">
+            <span class="material-symbols-outlined text-[20px]">visibility_off</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <button class="w-full bg-primary text-on-primary font-label-md text-label-md py-sm rounded-lg hover:bg-on-primary-fixed-variant shadow-sm hover:shadow-md transition-all duration-200 mt-base flex justify-center items-center gap-base" type="submit">
+        Ingresar
+      </button>
+    </form>
+
+    <!-- Register Link -->
+    <div class="mt-lg text-center font-body-md text-body-md text-on-surface-variant">
+      <span>¿No tienes cuenta?</span>
+      <a class="font-label-md text-label-md text-primary hover:text-on-primary-fixed-variant transition-colors hover:underline ml-xs" href="{% url 'authentication:register_step1' %}">
+        Regístrate aquí
+      </a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="absolute bottom-gutter w-full text-center px-gutter hidden md:block">
+    <p class="font-label-sm text-label-sm text-outline">
+      <a class="hover:text-primary transition-colors" href="#">Términos de Servicio</a> •
+      <a class="hover:text-primary transition-colors" href="#">Política de Privacidad</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

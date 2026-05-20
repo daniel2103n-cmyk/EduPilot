@@ -7,6 +7,7 @@ Fase 2: Migrar a PostgreSQL + Railway deployment.
 
 from pathlib import Path
 from decouple import config, Undefined
+import dj_database_url
 
 # ─── Rutas base ───────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +21,7 @@ except Exception:
 
 DEBUG = config('DEBUG', cast=bool, default=True)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app', '.render.com']
 
 # ─── IA — OpenRouter ──────────────────────────────────────────────────────────
 # Fase 2: usar en ai_service.py
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
 # ─── Middleware ───────────────────────────────────────────────────────────────
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -79,13 +81,22 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # ─── Base de Datos ────────────────────────────────────────────────────────────
-# Fase 1: SQLite | Fase 2: PostgreSQL en Railway
+# Fase 1: SQLite | Fase 2: PostgreSQL en Railway / Render
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# Configuración dinámica para producción (Render/Railway)
+DATABASE_URL = config('DATABASE_URL', default=None)
+if DATABASE_URL:
+    DATABASES['default'] = dj_database_url.config(
+        default=DATABASE_URL,
+        conn_max_age=600,
+        ssl_require=True
+    )
 
 # ─── Validación de contraseñas ────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
@@ -105,6 +116,16 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Configuración de almacenamiento para producción (servido por WhiteNoise)
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

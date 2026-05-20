@@ -208,24 +208,30 @@
   const drawerOverlay = document.getElementById('drawer-overlay');
 
   function updatePrerequisitesVisibility(drawer, currentCourseId = null) {
+    if (!drawer) return;
     const levelInput = drawer.querySelector('[name="level"]');
+    if (!levelInput) return;
     const currentLevel = parseInt(levelInput.value) || 1;
     const options = drawer.querySelectorAll('.prerequisite-option');
     let visibleCount = 0;
 
     options.forEach(opt => {
-      const optLevel = parseInt(opt.dataset.level);
+      const optLevel = parseInt(opt.dataset.level) || 0;
       const optId = opt.dataset.id;
       
-      // Regla: Nivel de prerequisito debe ser estrictamente menor al nivel de la materia
-      // Regla: No puede ser la materia misma
-      if (optLevel < currentLevel && optId !== currentCourseId) {
+      // Comparar IDs de forma segura como strings
+      const isSelf = currentCourseId !== null && String(optId) === String(currentCourseId);
+      
+      // Permitir prerrequisitos del mismo semestre (optLevel <= currentLevel)
+      if (optLevel <= currentLevel && !isSelf) {
         opt.style.display = 'flex';
         visibleCount++;
       } else {
         opt.style.display = 'none';
         const checkbox = opt.querySelector('input');
-        if (checkbox) checkbox.checked = false; // Desmarcar si queda oculto o es inválido
+        if (checkbox && (optLevel > currentLevel || isSelf)) {
+          checkbox.checked = false; // Desmarcar solo si es inválido académicamente
+        }
       }
     });
 
@@ -239,15 +245,17 @@
     }
   }
 
-  // Setup event listeners for level inputs
+  // Configurar listeners en todos los eventos posibles para actualizar al cambiar de semestre
   document.querySelectorAll('input[name="level"]').forEach(input => {
-    input.addEventListener('input', function() {
-      const drawer = this.closest('[id^="drawer-"]');
-      if (drawer) {
-        const courseIdInput = drawer.querySelector('[name="course_id"]');
-        const courseId = courseIdInput ? courseIdInput.value : null;
-        updatePrerequisitesVisibility(drawer, courseId);
-      }
+    ['input', 'change', 'keyup', 'mouseup', 'focus'].forEach(evt => {
+      input.addEventListener(evt, function() {
+        const drawer = this.closest('[id^="drawer-"]');
+        if (drawer) {
+          const courseIdInput = drawer.querySelector('[name="course_id"]');
+          const courseId = courseIdInput ? courseIdInput.value : null;
+          updatePrerequisitesVisibility(drawer, courseId);
+        }
+      });
     });
   });
 

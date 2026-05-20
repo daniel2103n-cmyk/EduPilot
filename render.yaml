@@ -26,3 +26,5 @@ services:
         value: admin123
       - key: DJANGO_SUPERUSER_EMAIL
         value: admin@example.com
+      - key: OPENROUTER_API_KEY
+        sync: false

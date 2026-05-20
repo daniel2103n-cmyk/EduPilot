@@ -222,14 +222,14 @@
       // Comparar IDs de forma segura como strings
       const isSelf = currentCourseId !== null && String(optId) === String(currentCourseId);
       
-      // Permitir prerrequisitos del mismo semestre (optLevel <= currentLevel)
-      if (optLevel <= currentLevel && !isSelf) {
+      // Permitir prerrequisitos estrictamente de semestres anteriores (optLevel < currentLevel)
+      if (optLevel < currentLevel && !isSelf) {
         opt.style.display = 'flex';
         visibleCount++;
       } else {
         opt.style.display = 'none';
         const checkbox = opt.querySelector('input');
-        if (checkbox && (optLevel > currentLevel || isSelf)) {
+        if (checkbox && (optLevel >= currentLevel || isSelf)) {
           checkbox.checked = false; // Desmarcar solo si es inválido académicamente
         }
       }

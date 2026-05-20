@@ -21,7 +21,7 @@ except Exception:
 
 DEBUG = config('DEBUG', cast=bool, default=True)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app', '.render.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app', '.onrender.com', '.render.com']
 
 # ─── IA — OpenRouter ──────────────────────────────────────────────────────────
 # Fase 2: usar en ai_service.py

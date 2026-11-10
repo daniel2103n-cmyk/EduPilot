@@ -1,0 +1,631 @@
+{% extends 'base_student.html' %}
+
+{% block page_title %}Matrícula y Horarios — EduPilot{% endblock %}
+
+{% block student_content %}
+  <main class="flex-1 p-8 space-y-6 max-w-[1520px] w-full mx-auto">
+
+    <!-- Header Section -->
+    <section class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-3 border-b border-outline-variant/40">
+      <div>
+        <div class="flex items-center gap-3 mb-1">
+          <h1 class="text-headline-xl font-headline-xl text-on-surface font-bold tracking-tight">Planificador de Horarios y Matrícula</h1>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-container-highest text-secondary text-label-sm font-label-sm font-semibold border border-secondary-fixed">
+            <span class="material-symbols-outlined text-[14px]">calendar_month</span>
+            Periodo 2025-1 • Semestre Vigente
+          </span>
+        </div>
+        <p class="text-body-md font-body-md text-on-surface-variant">
+          Genera recomendaciones sin colisiones, personaliza los grupos de tus asignaturas del semestre y evalúa el bienestar de tu semana.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <a href="{% url 'student:routes' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-lowest text-on-surface border border-outline-variant hover:bg-surface-container transition-colors text-label-md font-label-md">
+          <span class="material-symbols-outlined text-[18px]">alt_route</span>
+          <span>Volver a Rutas</span>
+        </a>
+        <a href="{% url 'student:guardados' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-lowest text-on-surface border border-outline-variant hover:bg-surface-container transition-colors text-label-md font-label-md">
+          <span class="material-symbols-outlined text-[18px]">folder</span>
+          <span>Mis Horarios Guardados ({{ saved_schedules|length }})</span>
+        </a>
+        <button type="button" onclick="openSaveScheduleModal()" id="btn-save-schedule" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-secondary hover:bg-on-secondary-container text-surface-container-lowest font-medium transition-colors text-label-md font-label-md shadow-sm">
+          <span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+          <span>Guardar este Horario</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Barra de Selección de Ruta y Recomendaciones -->
+    <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-4 shadow-sm space-y-3">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <!-- Selector de Ruta Origen -->
+        <div class="flex items-center gap-3">
+          <span class="text-label-md font-semibold text-on-surface">Ruta base:</span>
+          {% if saved_routes %}
+          <select id="route-selector" onchange="window.location.href='?route_id=' + this.value"
+                  class="px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface text-label-md font-medium focus:outline-none focus:border-secondary">
+            {% for r in saved_routes %}
+            <option value="{{ r.id }}" {% if selected_route and selected_route.id == r.id %}selected{% endif %}>
+              {{ r.name }} ({{ r.strategy_label }}) {% if r.is_favorite %}★{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+          {% else %}
+          <span class="px-3 py-1 rounded bg-surface-container text-label-sm font-semibold text-secondary">
+            {{ route_source_name }} (Sugerida)
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Botones de Propuestas Recomendadas -->
+        {% if proposals %}
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-label-sm text-on-surface-variant hidden sm:inline">Recomendaciones:</span>
+          {% for prop in proposals %}
+          <button type="button" onclick="applyProposal('{{ prop.key }}')"
+                  class="proposal-tab-btn px-3 py-1.5 rounded-lg border text-label-sm font-semibold transition-all flex items-center gap-1.5
+                         {% if forloop.first %}bg-secondary text-surface-container-lowest border-secondary shadow-xs{% else %}bg-surface-container-low text-on-surface border-outline-variant hover:bg-surface-container{% endif %}"
+                  data-prop-key="{{ prop.key }}">
+            {% if prop.key == 'COMPACT' %}
+              <span class="material-symbols-outlined text-[16px]">view_compact</span>
+            {% elif prop.key == 'MIN_GAPS' %}
+              <span class="material-symbols-outlined text-[16px]">hourglass_empty</span>
+            {% else %}
+              <span class="material-symbols-outlined text-[16px]">balance</span>
+            {% endif %}
+            <span>{{ prop.title }}</span>
+          </button>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Resumen de Validación y Métricas de Calidad -->
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <!-- Indicador de Cruces -->
+      <div id="status-card" class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-label-md text-on-surface-variant font-medium">Compatibilidad</span>
+          <span id="status-icon" class="material-symbols-outlined text-[22px] text-emerald-600">verified</span>
+        </div>
+        <div class="my-2">
+          <div id="status-text" class="text-headline-sm font-bold text-emerald-700">Sin Solapamientos</div>
+          <p id="status-subtext" class="text-label-sm text-on-surface-variant mt-0.5">Todas las sesiones son compatibles</p>
+        </div>
+        <div class="text-[11px] text-on-surface-variant">Validación en tiempo real</div>
+      </div>
+
+      <!-- Puntuación de Calidad -->
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-label-md text-on-surface-variant font-medium">Índice de Calidad</span>
+          <span class="material-symbols-outlined text-[20px] text-secondary">speed</span>
+        </div>
+        <div class="my-2">
+          <div id="metric-score" class="text-headline-lg font-bold text-on-surface">{{ active_proposal.metrics.quality_score|default:"100" }} / 100</div>
+          <p class="text-label-sm text-on-surface-variant mt-0.5">Equilibrio y descansos</p>
+        </div>
+        <div class="text-[11px] text-secondary font-medium">Explicable por algoritmo</div>
+      </div>
+
+      <!-- Días de Asistencia y Horas -->
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-label-md text-on-surface-variant font-medium">Días y Horas de Clase</span>
+          <span class="material-symbols-outlined text-[20px] text-secondary">calendar_today</span>
+        </div>
+        <div class="my-2">
+          <div id="metric-days" class="text-headline-lg font-bold text-on-surface">{{ active_proposal.metrics.days_with_class|default:"0" }} Días</div>
+          <p id="metric-hours" class="text-label-sm text-on-surface-variant mt-0.5">{{ active_proposal.metrics.total_class_hours|default:"0" }} horas clase / semana</p>
+        </div>
+        <div id="metric-days-list" class="text-[11px] text-on-surface-variant">{{ active_proposal.metrics.days_list|join:", "|default:"--" }}</div>
+      </div>
+
+      <!-- Tiempos de Espera (Huecos) -->
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-label-md text-on-surface-variant font-medium">Huecos Semanales</span>
+          <span class="material-symbols-outlined text-[20px] text-secondary">hourglass_top</span>
+        </div>
+        <div class="my-2">
+          <div id="metric-gaps" class="text-headline-lg font-bold text-on-surface">{{ active_proposal.metrics.total_weekly_wait_minutes|default:"0" }} min</div>
+          <p class="text-label-sm text-on-surface-variant mt-0.5">Tiempo libre entre clases</p>
+        </div>
+        <div id="metric-stay" class="text-[11px] text-on-surface-variant">Jornada máx: {{ active_proposal.metrics.longest_daily_stay_hours|default:"0" }}h en campus</div>
+      </div>
+    </section>
+
+    <!-- Alerta de Conflictos (si hay cruces) -->
+    <section id="conflicts-alert" class="hidden bg-red-50 border-l-4 border-l-error border border-red-200 rounded-xl p-4 shadow-sm">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-error text-[24px]">error</span>
+        <div class="space-y-1">
+          <h3 class="font-bold text-error text-label-lg">Solapamiento de Horarios Detectado</h3>
+          <p class="text-body-sm text-on-surface">Las siguientes sesiones de clase chocan en el mismo día y franja horaria:</p>
+          <ul id="conflicts-list" class="list-disc list-inside text-body-sm text-on-surface-variant pl-1 space-y-0.5"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Layout Central: Selector de Grupos a la Izquierda + Cuadrícula Semanal a la Derecha -->
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+
+      <!-- Columna Izquierda: Materias y Selección Libre de Grupos (4 cols) -->
+      <section class="xl:col-span-4 space-y-4">
+        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 p-5 shadow-sm space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-outline-variant/40">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-secondary text-[20px]">layers</span>
+              <h2 class="text-headline-sm font-headline-sm text-on-surface font-bold">Asignaturas del Semestre</h2>
+            </div>
+            <span class="text-code-sm font-code-sm px-2.5 py-0.5 rounded bg-surface-container text-secondary font-bold">
+              {{ current_courses|length }} materias
+            </span>
+          </div>
+
+          <p class="text-xs text-on-surface-variant">
+            Explora y cambia el grupo de cada asignatura (incluyendo CAIs). El sistema recalculará los cruces y las métricas inmediatamente.
+          </p>
+
+          <!-- Lista de Asignaturas con Dropdown de Grupos -->
+          <div class="space-y-3" id="courses-selection-stack">
+            {% for course in current_courses %}
+            <div class="course-card rounded-xl border border-outline-variant/70 bg-surface-container-low/40 p-3.5 space-y-2 relative" data-course-id="{{ course.id }}">
+              <div class="flex items-start justify-between">
+                <div>
+                  <span class="font-code-sm text-code-sm font-semibold text-secondary">{{ course.code }}</span>
+                  <h3 class="text-label-md font-bold text-on-surface">{{ course.name }}</h3>
+                </div>
+                <span class="text-label-sm font-medium px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant">{{ course.credits }} cr</span>
+              </div>
+
+              <!-- Selector de Grupo para esta Asignatura -->
+              <div class="space-y-1">
+                <label class="text-[11px] font-semibold text-on-surface-variant block">Grupo / Horario:</label>
+                <select class="group-select w-full px-2.5 py-1.5 text-xs rounded-lg border border-outline-variant bg-surface-container text-on-surface focus:outline-none focus:border-secondary"
+                        data-course-id="{{ course.id }}" onchange="onGroupSelectionChange()">
+                  <!-- Opciones inyectadas dinámicamente desde catalog_json -->
+                </select>
+                <div class="group-details-text text-[11px] text-on-surface-variant pt-0.5 italic"></div>
+              </div>
+            </div>
+            {% empty %}
+            <div class="p-6 text-center text-on-surface-variant">
+              <p class="text-body-sm">No se encontraron materias pendientes para este ciclo.</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Explicación de IA del Horario -->
+        <div class="bg-surface-container-lowest border-2 border-secondary/40 rounded-xl p-5 shadow-sm space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-outline-variant/40">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-secondary text-[20px]">psychology</span>
+              <h3 class="text-headline-sm font-bold text-on-surface">Asesor de Bienestar IA</h3>
+            </div>
+            <button type="button" onclick="loadScheduleAIExplanation()" id="btn-schedule-ai"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-secondary text-secondary hover:bg-surface-container text-xs font-semibold transition-colors">
+              <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+              <span>Analizar horario</span>
+            </button>
+          </div>
+
+          <div id="schedule-ai-box" class="p-3.5 rounded-lg bg-surface-container-low border border-secondary/20 text-body-sm text-on-surface leading-relaxed whitespace-pre-line min-h-[80px]">
+            <p id="schedule-ai-placeholder" class="text-on-surface-variant text-center py-2 text-xs">
+              Haz clic en <strong>"Analizar horario"</strong> para recibir la evaluación de IA sobre tu jornada semanal y recomendaciones de estudio.
+            </p>
+            <div id="schedule-ai-loading" class="hidden text-center py-3 space-y-1.5">
+              <div class="w-5 h-5 border-2 border-secondary border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p class="text-xs text-secondary font-medium">Evaluando distribución semanal...</p>
+            </div>
+            <div id="schedule-ai-text" class="hidden"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Columna Derecha: Cuadrícula Semanal de Horarios (8 cols) -->
+      <section class="xl:col-span-8 space-y-4">
+        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 shadow-sm overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-3.5 border-b border-outline-variant/40 bg-surface-container-low/70">
+            <div class="flex items-center gap-3">
+              <span class="text-headline-sm font-bold text-on-surface">Cuadrícula Semanal de Horarios</span>
+              <span class="text-label-sm text-on-surface-variant hidden sm:inline">Lunes a Sábado • 06:00 a 22:00</span>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-label-sm bg-tertiary-fixed text-on-tertiary-fixed font-semibold">
+              <span class="w-1.5 h-1.5 rounded-full bg-on-tertiary-container"></span>
+              Visualizador Semanal
+            </span>
+          </div>
+
+          <!-- Tabla de Horarios -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-center border-collapse min-w-[700px]" id="schedule-grid-table">
+              <thead>
+                <tr class="bg-surface-container-low/40 border-b border-outline-variant text-label-sm text-on-surface-variant uppercase">
+                  <th class="py-2.5 px-3 w-28 text-left border-r border-outline-variant/30 font-bold">Franja</th>
+                  {% for day in schedule_days %}
+                  <th class="py-2.5 px-3 border-r border-outline-variant/30 last:border-r-0 font-bold text-on-surface">{{ day }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-outline-variant/20 text-body-sm">
+                {% for hour in hours_grid %}
+                <tr class="h-16 hover:bg-surface-container-low/20 transition-colors" data-hour-slot="{{ hour }}">
+                  <td class="py-2 px-3 text-left font-code-sm text-xs text-on-surface-variant font-medium border-r border-outline-variant/30 bg-surface-container-low/20">
+                    {{ hour }}
+                  </td>
+                  {% for day in schedule_days %}
+                  <td class="p-1 border-r border-outline-variant/30 last:border-r-0 align-top relative schedule-slot-cell"
+                      data-day="{{ day }}" data-hour-slot="{{ hour }}">
+                    <!-- Bloques de clase renderizados dinámicamente -->
+                  </td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Modal para Guardar Horario -->
+  <div id="save-schedule-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-xl border border-outline-variant space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-outline-variant/40">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-secondary text-[22px]">bookmark</span>
+          <h3 class="text-headline-sm font-bold text-on-surface">Guardar Horario Validado</h3>
+        </div>
+        <button type="button" onclick="closeSaveScheduleModal()" class="text-outline hover:text-on-surface p-1">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <form id="save-schedule-form" onsubmit="submitSaveSchedule(event)" class="space-y-4">
+        {% csrf_token %}
+        <div class="space-y-1.5">
+          <label class="block text-label-md font-semibold text-on-surface">Nombre para este horario:</label>
+          <input type="text" id="modal-schedule-name" required value="Horario Semestre 2025-1"
+                 class="w-full px-3.5 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-body-md" />
+        </div>
+
+        <div class="p-3 bg-surface-container-low rounded-lg text-xs text-on-surface-variant space-y-1">
+          <p><strong>Resumen de la selección:</strong></p>
+          <p id="modal-summary-text">• Asignaturas seleccionadas: {{ current_courses|length }}</p>
+          <p>• Periodo académico: 2025-1</p>
+          <p>• Solo se persistirá si la combinación está validada sin cruces.</p>
+        </div>
+
+        <div class="flex items-center justify-end gap-2.5 pt-2">
+          <button type="button" onclick="closeSaveScheduleModal()" class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container text-label-md font-medium transition-colors">
+            Cancelar
+          </button>
+          <button type="submit" id="modal-confirm-save-btn" class="px-5 py-2 rounded-lg bg-secondary text-surface-container-lowest hover:bg-on-secondary-container text-label-md font-semibold shadow-sm transition-colors">
+            Confirmar y Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Catálogo de Grupos serializado para interactividad JS -->
+  <script>
+    const CATALOG_DATA = {{ catalog_json_str|safe }};
+    const CURRENT_PROPOSALS = [
+      {% for prop in proposals %}
+      {
+        key: "{{ prop.key }}",
+        title: "{{ prop.title }}",
+        isValid: {{ prop.is_valid|yesno:"true,false" }},
+        assignedGroups: [
+          {% for g in prop.assigned_groups %}
+          { courseId: {{ g.course_id }}, groupNumber: "{{ g.group_number }}" },
+          {% endfor %}
+        ]
+      },
+      {% endfor %}
+    ];
+
+    let currentSelectedGroups = []; // Array of { course_id, group_number }
+    let lastValidationResult = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initGroupSelects();
+      if (CURRENT_PROPOSALS.length > 0) {
+        applyProposal(CURRENT_PROPOSALS[0].key);
+      } else {
+        renderScheduleGrid();
+      }
+    });
+
+    // Inicializar dropdowns de grupos
+    function initGroupSelects() {
+      const selects = document.querySelectorAll('.group-select');
+      selects.forEach(sel => {
+        const cid = sel.getAttribute('data-course-id');
+        const groups = CATALOG_DATA[cid] || [];
+        sel.innerHTML = '';
+
+        if (groups.length === 0) {
+          sel.innerHTML = '<option value="">Sin oferta disponible</option>';
+          sel.disabled = true;
+          return;
+        }
+
+        groups.forEach(g => {
+          const opt = document.createElement('option');
+          opt.value = g.group_number;
+          opt.textContent = `Grupo ${g.group_number} (${g.available_spots} cupos) — ${g.summary}`;
+          sel.appendChild(opt);
+        });
+      });
+    }
+
+    // Aplicar una propuesta recomendada
+    function applyProposal(key) {
+      const prop = CURRENT_PROPOSALS.find(p => p.key === key);
+      if (!prop) return;
+
+      // Actualizar estilo botones tabs
+      document.querySelectorAll('.proposal-tab-btn').forEach(btn => {
+        if (btn.getAttribute('data-prop-key') === key) {
+          btn.className = 'proposal-tab-btn px-3 py-1.5 rounded-lg border text-label-sm font-semibold transition-all flex items-center gap-1.5 bg-secondary text-surface-container-lowest border-secondary shadow-xs';
+        } else {
+          btn.className = 'proposal-tab-btn px-3 py-1.5 rounded-lg border text-label-sm font-semibold transition-all flex items-center gap-1.5 bg-surface-container-low text-on-surface border-outline-variant hover:bg-surface-container';
+        }
+      });
+
+      // Sincronizar dropdowns
+      prop.assignedGroups.forEach(item => {
+        const sel = document.querySelector(`.group-select[data-course-id="${item.courseId}"]`);
+        if (sel) {
+          sel.value = item.groupNumber;
+        }
+      });
+
+      onGroupSelectionChange();
+    }
+
+    // Reaccionar al cambio manual de grupo
+    function onGroupSelectionChange() {
+      currentSelectedGroups = [];
+      const selects = document.querySelectorAll('.group-select');
+
+      selects.forEach(sel => {
+        const cid = parseInt(sel.getAttribute('data-course-id'));
+        const grpVal = sel.value;
+        const card = sel.closest('.course-card');
+        const detailsEl = card ? card.querySelector('.group-details-text') : null;
+
+        if (grpVal) {
+          currentSelectedGroups.push({ course_id: cid, group_number: grpVal });
+          const groups = CATALOG_DATA[cid] || [];
+          const matched = groups.find(g => g.group_number === grpVal);
+          if (detailsEl && matched) {
+            detailsEl.textContent = matched.summary;
+          }
+        } else if (detailsEl) {
+          detailsEl.textContent = 'Sin grupo seleccionado.';
+        }
+      });
+
+      renderScheduleGrid();
+      validateScheduleViaAjax();
+    }
+
+    // Dibujar las sesiones de clase en la matriz semanal
+    function renderScheduleGrid() {
+      // Limpiar todas las celdas
+      document.querySelectorAll('.schedule-slot-cell').forEach(cell => {
+        cell.innerHTML = '';
+      });
+
+      currentSelectedGroups.forEach(item => {
+        const groups = CATALOG_DATA[item.course_id] || [];
+        const grp = groups.find(g => g.group_number === item.group_number);
+        if (!grp) return;
+
+        grp.sessions.forEach(sess => {
+          // Buscar celdas correspondientes al día y hora
+          const cells = document.querySelectorAll(`.schedule-slot-cell[data-day="${sess.day}"]`);
+          cells.forEach(cell => {
+            const slot = cell.getAttribute('data-hour-slot');
+            if (isSessionInSlot(sess, slot)) {
+              const badge = document.createElement('div');
+              badge.className = 'p-1.5 rounded-md bg-secondary text-surface-container-lowest text-left text-[11px] mb-1 shadow-xs border border-secondary-fixed';
+              badge.innerHTML = `
+                <div class="font-bold flex items-center justify-between">
+                  <span class="line-clamp-1">${grp.course_name}</span>
+                  <span class="text-[9px] px-1 rounded bg-surface-container-lowest text-secondary font-bold">G${grp.group_number}</span>
+                </div>
+                <div class="text-[10px] opacity-90 flex items-center justify-between mt-0.5">
+                  <span>${sess.start_time}-${sess.end_time}</span>
+                  <span>${sess.classroom}</span>
+                </div>
+              `;
+              cell.appendChild(badge);
+            }
+          });
+        });
+      });
+    }
+
+    // Comprueba si una sesión cae dentro de una franja de la tabla
+    function isSessionInSlot(session, slotStr) {
+      if (!session.start_time || !session.end_time || !slotStr) return false;
+      const parts = slotStr.split(' - ');
+      if (parts.length !== 2) return false;
+
+      const slotStart = parseTimeToMin(parts[0]);
+      const slotEnd = parseTimeToMin(parts[1]);
+      const sessStart = parseTimeToMin(session.start_time);
+      const sessEnd = parseTimeToMin(session.end_time);
+
+      return (sessStart < slotEnd) && (sessEnd > slotStart);
+    }
+
+    function parseTimeToMin(tStr) {
+      const p = tStr.split(':');
+      return parseInt(p[0]) * 60 + parseInt(p[1]);
+    }
+
+    // Revalidación AJAX en el servidor
+    function validateScheduleViaAjax() {
+      fetch("{% url 'student:horarios_validate' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ groups: currentSelectedGroups })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) return;
+        lastValidationResult = data;
+
+        const statusCard = document.getElementById('status-card');
+        const statusIcon = document.getElementById('status-icon');
+        const statusText = document.getElementById('status-text');
+        const statusSubtext = document.getElementById('status-subtext');
+        const conflictsAlert = document.getElementById('conflicts-alert');
+        const conflictsList = document.getElementById('conflicts-list');
+        const saveBtn = document.getElementById('btn-save-schedule');
+
+        // Métricas
+        const m = data.metrics || {};
+        document.getElementById('metric-score').textContent = (m.quality_score || 0) + ' / 100';
+        document.getElementById('metric-days').textContent = (m.days_with_class || 0) + ' Días';
+        document.getElementById('metric-hours').textContent = (m.total_class_hours || 0) + ' horas clase / semana';
+        document.getElementById('metric-days-list').textContent = (m.days_list && m.days_list.length > 0) ? m.days_list.join(', ') : '--';
+        document.getElementById('metric-gaps').textContent = (m.total_weekly_wait_minutes || 0) + ' min';
+        document.getElementById('metric-stay').textContent = 'Jornada máx: ' + (m.longest_daily_stay_hours || 0) + 'h en campus';
+
+        if (data.is_valid) {
+          statusIcon.textContent = 'verified';
+          statusIcon.className = 'material-symbols-outlined text-[22px] text-emerald-600';
+          statusText.textContent = 'Sin Solapamientos';
+          statusText.className = 'text-headline-sm font-bold text-emerald-700';
+          statusSubtext.textContent = 'Todas las sesiones son compatibles';
+          conflictsAlert.classList.add('hidden');
+          saveBtn.disabled = false;
+          saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+          statusIcon.textContent = 'error';
+          statusIcon.className = 'material-symbols-outlined text-[22px] text-error';
+          statusText.textContent = 'Cruces Detectados';
+          statusText.className = 'text-headline-sm font-bold text-error';
+          statusSubtext.textContent = 'Corrige los grupos en conflicto';
+
+          conflictsList.innerHTML = '';
+          (data.conflicts || []).forEach(c => {
+            const li = document.createElement('li');
+            li.textContent = `${c.course_a} (G${c.group_a}) choca con ${c.course_b} (G${c.group_b}) el ${c.time_a}.`;
+            conflictsList.appendChild(li);
+          });
+          conflictsAlert.classList.remove('hidden');
+          saveBtn.disabled = true;
+          saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+      })
+      .catch(err => console.error('Error revalidando horario:', err));
+    }
+
+    // Explicación de IA del Horario
+    function loadScheduleAIExplanation() {
+      const btn = document.getElementById('btn-schedule-ai');
+      const placeholder = document.getElementById('schedule-ai-placeholder');
+      const loading = document.getElementById('schedule-ai-loading');
+      const resultBox = document.getElementById('schedule-ai-text');
+
+      placeholder.classList.add('hidden');
+      resultBox.classList.add('hidden');
+      loading.classList.remove('hidden');
+      btn.disabled = true;
+
+      fetch("{% url 'student:horarios_ai_explanation' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ groups: currentSelectedGroups })
+      })
+      .then(res => res.json())
+      .then(data => {
+        loading.classList.add('hidden');
+        btn.disabled = false;
+
+        if (data.success && data.explanation) {
+          resultBox.textContent = data.explanation;
+          resultBox.classList.remove('hidden');
+        } else {
+          resultBox.textContent = "No fue posible generar la explicación en este momento.";
+          resultBox.classList.remove('hidden');
+        }
+      })
+      .catch(err => {
+        loading.classList.add('hidden');
+        btn.disabled = false;
+        resultBox.textContent = "Error al conectar con el asesor de IA. Las métricas del motor siguen activas.";
+        resultBox.classList.remove('hidden');
+      });
+    }
+
+    // Modal para guardar horario
+    function openSaveScheduleModal() {
+      if (lastValidationResult && !lastValidationResult.is_valid) {
+        alert("No puedes guardar un horario con solapamientos o cruces entre clases.");
+        return;
+      }
+      document.getElementById('save-schedule-modal').classList.remove('hidden');
+    }
+    function closeSaveScheduleModal() {
+      document.getElementById('save-schedule-modal').classList.add('hidden');
+    }
+
+    function submitSaveSchedule(e) {
+      e.preventDefault();
+      const name = document.getElementById('modal-schedule-name').value;
+      const routeId = {% if selected_route %}{{ selected_route.id }}{% else %}null{% endif %};
+
+      fetch("{% url 'student:horarios_save' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          name: name,
+          route_id: routeId,
+          groups: currentSelectedGroups
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          window.location.href = "{% url 'student:guardados' %}";
+        } else {
+          alert(data.error || "Ocurrió un error al guardar el horario.");
+        }
+      })
+      .catch(err => alert("Error de red al guardar el horario."));
+    }
+
+    function getCsrfToken() {
+      const match = document.cookie.match(/csrftoken=([^;]+)/);
+      return match ? match[1] : '';
+    }
+  </script>
+{% endblock %}

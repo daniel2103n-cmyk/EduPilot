@@ -1,0 +1,151 @@
+{# EduPilot — Sidebar de Estudiante #}
+<!-- Overlay oscuro para dispositivos móviles -->
+<div id="student-sidebar-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-30 hidden md:hidden transition-opacity duration-300" onclick="toggleStudentSidebar()"></div>
+
+<aside id="student-sidebar" class="fixed top-0 left-0 h-screen w-64 flex flex-col justify-between shrink-0 bg-primary-container text-surface-container-lowest border-r border-outline-variant/30 z-40 select-none transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-xl md:shadow-none">
+  <div class="p-4 flex flex-col h-full justify-between overflow-y-auto">
+    <div>
+      <!-- Brand & Logo -->
+      <div class="flex items-center justify-between px-2 py-2 mb-3">
+        <a href="{% url 'student:dashboard' %}" class="flex items-center gap-3 group">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-secondary to-secondary-container flex items-center justify-center text-on-secondary shadow-md group-hover:scale-105 transition-transform">
+            <span class="material-symbols-outlined text-[24px] text-surface-container-lowest" style="font-variation-settings: 'FILL' 1;">explore</span>
+          </div>
+          <div>
+            <div class="text-headline-md font-bold text-surface-container-lowest tracking-tight leading-none">EduPilot</div>
+            <div class="text-[11px] font-semibold text-primary-fixed-dim tracking-wider uppercase mt-1">Portal Estudiantil</div>
+          </div>
+        </a>
+        <!-- Botón cerrar en móvil -->
+        <button type="button" onclick="toggleStudentSidebar()" class="md:hidden text-primary-fixed-dim hover:text-surface-container-lowest p-1 rounded-lg">
+          <span class="material-symbols-outlined text-[22px]">close</span>
+        </button>
+      </div>
+
+      <!-- Badge de Estudiante -->
+      <div class="mx-1 mb-4 px-3 py-1.5 rounded-lg bg-surface-container-highest/10 border border-outline-variant/20 flex items-center justify-between">
+        <span class="text-[11px] font-medium text-primary-fixed-dim">Rol de acceso:</span>
+        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 tracking-wide uppercase">Estudiante</span>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="space-y-1.5" aria-label="Navegación del Estudiante">
+        <!-- 1. Inicio / Dashboard -->
+        <a href="{% url 'student:dashboard' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+                  {% if active_nav == 'dashboard' %}
+                    bg-surface-container-highest/20 text-surface-container-lowest border-l-4 border-secondary-container shadow-sm
+                  {% else %}
+                    text-primary-fixed-dim hover:text-surface-container-lowest hover:bg-surface-container-highest/10
+                  {% endif %}">
+          <span class="material-symbols-outlined text-[20px] {% if active_nav == 'dashboard' %}text-secondary-container filled{% endif %}">dashboard</span>
+          <span>Inicio</span>
+        </a>
+
+        <!-- 2. Historial académico -->
+        <a href="{% url 'student:historial' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+                  {% if active_nav == 'historial' %}
+                    bg-surface-container-highest/20 text-surface-container-lowest border-l-4 border-secondary-container shadow-sm
+                  {% else %}
+                    text-primary-fixed-dim hover:text-surface-container-lowest hover:bg-surface-container-highest/10
+                  {% endif %}">
+          <span class="material-symbols-outlined text-[20px] {% if active_nav == 'historial' %}text-secondary-container filled{% endif %}">school</span>
+          <span>Historial académico</span>
+        </a>
+
+        <!-- 3. Materias (Plan de estudios) -->
+        <a href="{% url 'student:courses' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+                  {% if active_nav == 'courses' %}
+                    bg-surface-container-highest/20 text-surface-container-lowest border-l-4 border-secondary-container shadow-sm
+                  {% else %}
+                    text-primary-fixed-dim hover:text-surface-container-lowest hover:bg-surface-container-highest/10
+                  {% endif %}">
+          <span class="material-symbols-outlined text-[20px] {% if active_nav == 'courses' %}text-secondary-container filled{% endif %}">menu_book</span>
+          <span>Materias</span>
+        </a>
+
+        <!-- 4. Rutas académicas -->
+        <a href="{% url 'student:routes' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+                  {% if active_nav == 'routes' %}
+                    bg-surface-container-highest/20 text-surface-container-lowest border-l-4 border-secondary-container shadow-sm
+                  {% else %}
+                    text-primary-fixed-dim hover:text-surface-container-lowest hover:bg-surface-container-highest/10
+                  {% endif %}">
+          <span class="material-symbols-outlined text-[20px] {% if active_nav == 'routes' %}text-secondary-container filled{% endif %}">route</span>
+          <span>Rutas académicas</span>
+        </a>
+
+        <!-- 5. Matrícula y horarios -->
+        <a href="{% url 'student:horarios' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+                  {% if active_nav == 'horarios' %}
+                    bg-surface-container-highest/20 text-surface-container-lowest border-l-4 border-secondary-container shadow-sm
+                  {% else %}
+                    text-primary-fixed-dim hover:text-surface-container-lowest hover:bg-surface-container-highest/10
+                  {% endif %}">
+          <span class="material-symbols-outlined text-[20px] {% if active_nav == 'horarios' %}text-secondary-container filled{% endif %}">schedule</span>
+          <span>Matrícula y horarios</span>
+        </a>
+
+        <!-- 6. Mis planes -->
+        <a href="{% url 'student:guardados' %}"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+                  {% if active_nav == 'guardados' %}
+                    bg-surface-container-highest/20 text-surface-container-lowest border-l-4 border-secondary-container shadow-sm
+                  {% else %}
+                    text-primary-fixed-dim hover:text-surface-container-lowest hover:bg-surface-container-highest/10
+                  {% endif %}">
+          <span class="material-symbols-outlined text-[20px] {% if active_nav == 'guardados' %}text-secondary-container filled{% endif %}">bookmark</span>
+          <span>Mis planes guardados</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Student Profile & Logout Section -->
+    <div class="pt-4 border-t border-outline-variant/20 space-y-3">
+      <!-- Tarjeta del Estudiante -->
+      <div class="flex items-center gap-3 px-2 py-2.5 rounded-xl bg-surface-container-highest/10 border border-outline-variant/15">
+        <div class="w-10 h-10 rounded-full bg-secondary text-surface-container-lowest flex items-center justify-center font-bold text-sm shrink-0 shadow-sm ring-2 ring-secondary/30">
+          {{ request.user.first_name.0|upper|default:request.user.username.0|upper }}
+        </div>
+        <div class="overflow-hidden min-w-0 flex-1">
+          <div class="text-sm font-semibold text-surface-container-lowest truncate">
+            {{ request.user.get_full_name|default:request.user.username }}
+          </div>
+          <p class="text-[11px] text-primary-fixed-dim truncate">
+            {{ profile.program.name|default:request.user.studentprofile.program.name|default:"Estudiante EduPilot" }}
+          </p>
+          <p class="text-[10px] text-on-primary-container truncate font-mono">
+            Cód: {{ request.user.username }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Botón de Cerrar Sesión -->
+      <a href="{% url 'authentication:logout' %}"
+         class="flex items-center justify-center gap-2.5 w-full px-3 py-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-200 hover:text-white border border-red-500/20 transition-all duration-150 text-sm font-medium group">
+        <span class="material-symbols-outlined text-[18px] text-red-300 group-hover:text-white transition-colors">logout</span>
+        <span>Cerrar sesión</span>
+      </a>
+    </div>
+  </div>
+</aside>
+
+<script>
+  function toggleStudentSidebar() {
+    const sidebar = document.getElementById('student-sidebar');
+    const backdrop = document.getElementById('student-sidebar-backdrop');
+    if (!sidebar) return;
+    const isClosed = sidebar.classList.contains('-translate-x-full');
+    if (isClosed) {
+      sidebar.classList.remove('-translate-x-full');
+      if (backdrop) backdrop.classList.remove('hidden');
+    } else {
+      sidebar.classList.add('-translate-x-full');
+      if (backdrop) backdrop.classList.add('hidden');
+    }
+  }
+</script>

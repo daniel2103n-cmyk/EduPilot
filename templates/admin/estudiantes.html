@@ -1,210 +1,373 @@
-{% extends 'base.html' %}
+{% extends 'base_admin.html' %}
 
 {% block page_title %}Gestión de Estudiantes — EduPilot{% endblock %}
-{% block body_class %}flex{% endblock %}
 
-{% block content %}
-<!-- ════════════════════ SIDEBAR ════════════════════ -->
-<aside class="fixed top-0 left-0 h-full w-64 bg-inverse-surface text-inverse-on-surface shadow-lg z-40 flex flex-col p-md gap-base">
-  <!-- Brand -->
-  <div class="flex items-center gap-sm mb-lg px-xs mt-xs">
-    <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-soft">
-      <span class="material-symbols-outlined text-on-primary text-xl" style="font-variation-settings: 'FILL' 1;">manage_accounts</span>
+{% block admin_content %}
+<main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-[1600px] w-full mx-auto min-w-0">
+<!-- PAGE HEADER SECTION -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
+<div class="space-y-1">
+<div class="flex items-center gap-3">
+<h1 class="text-headline-md font-headline-md font-bold text-on-surface tracking-tight">Gestión de estudiantes</h1>
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-secondary-fixed text-on-secondary-fixed">
+              Módulo A02
+            </span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant max-w-2xl">
+            Consulta y administra los registros académicos de los estudiantes matriculados y sus planes de estudio.
+          </p>
+</div>
+<!-- Action cluster -->
+<div class="flex items-center gap-3 shrink-0">
+<button class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant text-on-surface hover:bg-surface hover:border-outline transition-colors text-label-md font-label-md shadow-sm" type="button" onclick="window.print()">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Exportar / Imprimir</span>
+</button>
+<button id="btn-nuevo-estudiante" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-surface-container-lowest hover:bg-on-secondary-container transition-colors text-label-md font-label-md shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>+ Registrar estudiante</span>
+</button>
+</div>
+</div>
+<!-- 4 KPI SUMMARY CARDS (Analytical Density) -->
+<section aria-label="Indicadores generales de matrícula" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Card 1: Total estudiantes -->
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/40 shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md text-on-surface-variant font-medium">Total de estudiantes</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[18px]">school</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline justify-between">
+<div class="text-headline-lg font-headline-lg font-bold text-on-surface">{{ total_students_count }}</div>
+<span class="inline-flex items-center gap-1 text-[11px] font-label-sm font-semibold text-on-tertiary-container bg-tertiary-fixed/40 px-2 py-0.5 rounded-md">
+<span class="material-symbols-outlined text-[14px]">school</span>
+              Base institucional
+            </span>
+</div>
+<div class="mt-2 text-body-sm font-body-sm text-on-surface-variant">
+            Registrados en el sistema central
+          </div>
+</div>
+<!-- Card 2: Estudiantes activos -->
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/40 shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md text-on-surface-variant font-medium">Estudiantes filtrados</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center text-on-tertiary-container">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline justify-between">
+<div class="text-headline-lg font-headline-lg font-bold text-on-surface">{{ filtered_count }}</div>
+<span class="text-label-sm font-label-sm font-semibold text-on-tertiary-container bg-tertiary-fixed/30 px-2 py-0.5 rounded-md">
+              En vista
+            </span>
+</div>
+<div class="mt-2 text-body-sm font-body-sm text-on-surface-variant truncate">
+            Coinciden con los criterios
+          </div>
+</div>
+<!-- Card 3: Requieren atención / En riesgo -->
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/40 shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md text-on-surface-variant font-medium">Requieren atención / En riesgo</span>
+<div class="w-8 h-8 rounded-lg bg-error-container/40 flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[18px]">warning</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline justify-between">
+<div class="text-headline-lg font-headline-lg font-bold text-error">{{ risk_students_count }}</div>
+<span class="text-label-sm font-label-sm font-semibold text-error bg-error-container/60 px-2 py-0.5 rounded-md">
+              Alerta
+            </span>
+</div>
+<div class="mt-2 text-body-sm font-body-sm text-on-surface-variant truncate">
+            Materias reprobadas o rezago
+          </div>
+</div>
+<!-- Card 4: Información incompleta -->
+<div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/40 shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md text-on-surface-variant font-medium">Sin programa asignado</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">pending_actions</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline justify-between">
+<div class="text-headline-lg font-headline-lg font-bold text-on-surface">{{ incomplete_count }}</div>
+<span class="text-label-sm font-label-sm font-semibold text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-md">
+              Pendiente
+            </span>
+</div>
+<div class="mt-2 text-body-sm font-body-sm text-on-surface-variant truncate">
+            Perfil sin programa académico
+          </div>
+</div>
+</section>
+<!-- FILTERS & SEARCH CONTROL PANEL -->
+<form method="GET" action="{% url 'admin_panel:students' %}" class="bg-surface-container-lowest rounded-xl border border-outline-variant/40 p-4 shadow-sm flex flex-col gap-3">
+<div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+<!-- Large Search Field -->
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+<input name="q" value="{{ search_query }}" class="w-full pl-10 pr-4 py-2 text-body-md font-body-md bg-surface rounded-lg border border-outline-variant/60 focus:border-secondary focus:ring-2 focus:ring-secondary/20 placeholder:text-outline text-on-surface transition-all" placeholder="Buscar por nombre, código o correo institucional..." type="text"/>
+</div>
+<!-- Filter Dropdowns Cluster -->
+<div class="flex flex-wrap items-center gap-2">
+<!-- Programa Académico -->
+<div class="relative">
+<select name="program" onchange="this.form.submit()" class="appearance-none bg-surface border border-outline-variant/60 rounded-lg pl-3 pr-8 py-2 text-body-sm font-body-sm text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary">
+<option value="">Todos los programas</option>
+{% for prog in programs %}
+<option value="{{ prog.id }}" {% if selected_program == prog.id|stringformat:"s" %}selected{% endif %}>{{ prog.name }}</option>
+{% endfor %}
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline text-[16px] pointer-events-none">expand_more</span>
+</div>
+<!-- Semestre Actual -->
+<div class="relative">
+<select name="semester" onchange="this.form.submit()" class="appearance-none bg-surface border border-outline-variant/60 rounded-lg pl-3 pr-8 py-2 text-body-sm font-body-sm text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary">
+<option value="">Todos los semestres</option>
+<option value="1" {% if selected_semester == "1" %}selected{% endif %}>1er Semestre</option>
+<option value="2" {% if selected_semester == "2" %}selected{% endif %}>2do Semestre</option>
+<option value="3" {% if selected_semester == "3" %}selected{% endif %}>3er Semestre</option>
+<option value="4" {% if selected_semester == "4" %}selected{% endif %}>4to Semestre</option>
+<option value="5" {% if selected_semester == "5" %}selected{% endif %}>5to Semestre</option>
+<option value="6" {% if selected_semester == "6" %}selected{% endif %}>6to Semestre</option>
+<option value="7" {% if selected_semester == "7" %}selected{% endif %}>7mo Semestre</option>
+<option value="8" {% if selected_semester == "8" %}selected{% endif %}>8vo Semestre</option>
+<option value="9" {% if selected_semester == "9" %}selected{% endif %}>9no Semestre</option>
+<option value="10" {% if selected_semester == "10" %}selected{% endif %}>10mo Semestre</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline text-[16px] pointer-events-none">expand_more</span>
+</div>
+<button type="submit" class="px-3 py-2 rounded-lg bg-secondary text-surface-container-lowest text-body-sm font-body-sm font-medium hover:bg-on-secondary-container transition-colors">
+Filtrar
+</button>
+<!-- Reset / Reset Filters Link -->
+<a href="{% url 'admin_panel:students' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface hover:bg-surface transition-colors">
+<span class="material-symbols-outlined text-[16px]">filter_list_off</span>
+<span>Limpiar filtros</span>
+</a>
+</div>
+</div>
+<!-- Metadata Bar inside filter card -->
+<div class="flex items-center justify-between pt-2 border-t border-outline-variant/30 text-body-sm font-body-sm text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-secondary">info</span>
+<span>Mostrando <strong class="text-on-surface font-semibold">{{ filtered_count }}</strong> de <strong class="text-on-surface font-semibold">{{ total_students_count }}</strong> registrados</span>
+</div>
+<div class="text-label-sm font-label-sm text-outline">
+            Filtros aplicados: <span class="text-secondary font-semibold">{% if selected_program or selected_semester or search_query %}Activos{% else %}0{% endif %}</span>
+</div>
+</div>
+</form>
+<!-- CONTEXTUAL BULK ACTIONS BAR (Visible when items selected) -->
+<section class="bg-surface-container-low border border-secondary-fixed-dim/40 rounded-xl px-4 py-2.5 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2">
+<input checked="" class="w-4 h-4 rounded border-outline text-secondary focus:ring-secondary cursor-pointer" type="checkbox"/>
+<span class="text-label-md font-label-md text-on-surface font-medium">1 estudiante seleccionado</span>
+</div>
+<div class="h-4 w-px bg-outline-variant/60"></div>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Acciones masivas disponibles:</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant text-body-sm font-body-sm text-on-surface hover:bg-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-secondary">mail</span>
+<span>Enviar notificación</span>
+</button>
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant text-body-sm font-body-sm text-on-surface hover:bg-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-secondary">person_add</span>
+<span>Asignar tutor</span>
+</button>
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant text-body-sm font-body-sm text-on-surface hover:bg-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-secondary">description</span>
+<span>Descargar ficha académica</span>
+</button>
+</div>
+</section>
+<!-- DATA TABLE: GESTIÓN DE ESTUDIANTES -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/40 shadow-sm overflow-hidden flex flex-col">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface border-b border-outline-variant/40 h-10">
+<th class="w-12 px-4 py-2 text-center" scope="col">
+<input aria-label="Seleccionar todos los estudiantes" class="w-4 h-4 rounded border-outline text-secondary focus:ring-secondary cursor-pointer" type="checkbox"/>
+</th>
+<th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant font-semibold tracking-wider" scope="col">
+                  Estudiante
+                </th>
+<th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant font-semibold tracking-wider" scope="col">
+                  Código
+                </th>
+<th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant font-semibold tracking-wider" scope="col">
+                  Programa Académico
+                </th>
+<th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant font-semibold tracking-wider text-center" scope="col">
+                  Semestre
+                </th>
+<th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant font-semibold tracking-wider w-44" scope="col">
+                  Avance Curricular
+                </th>
+<th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant font-semibold tracking-wider" scope="col">
+                  Estado &amp; Riesgo
+                </th>
+<th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant font-semibold tracking-wider text-right" scope="col">
+                  Acciones
+                </th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20">
+{% for item in students %}
+<tr class="hover:bg-surface-container-low/40 transition-colors group">
+<td class="px-4 py-3 text-center">
+  <input aria-label="Seleccionar estudiante" class="w-4 h-4 rounded border-outline text-secondary focus:ring-secondary cursor-pointer" type="checkbox"/>
+</td>
+<td class="px-4 py-3">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed text-label-md font-label-md font-bold shrink-0">
+      {{ item.profile.user.first_name.0|upper|default:item.profile.user.username.0|upper }}{{ item.profile.user.last_name.0|upper|default:"" }}
     </div>
-    <div class="flex flex-col">
-      <span class="font-headline-md text-headline-md font-bold tracking-tight">EduPilot</span>
-      <span class="font-label-sm text-label-sm text-inverse-on-surface/70">Panel Administrativo</span>
+    <div class="flex flex-col min-w-0">
+      <a href="{% url 'admin_panel:student_detail' item.profile.id %}" class="text-body-md font-body-md font-semibold text-on-surface hover:text-secondary truncate transition-colors">
+        {{ item.profile.user.get_full_name|default:item.profile.user.username }}
+      </a>
+      <span class="text-body-sm font-body-sm text-on-surface-variant truncate">{{ item.profile.user.email|default:"Sin correo" }}</span>
     </div>
   </div>
-
-  <!-- Nav -->
-  <nav class="flex flex-col gap-xs flex-1 mt-md">
-    <a class="flex items-center gap-base px-md py-sm rounded-lg transition-all duration-300 {% if active_nav == 'dashboard' %}bg-primary text-on-primary shadow-md{% else %}text-inverse-on-surface/80 hover:bg-inverse-on-surface/10 hover:text-inverse-on-surface{% endif %}"
-       href="{% url 'admin_panel:dashboard' %}">
-      <span class="material-symbols-outlined" {% if active_nav == 'dashboard' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>space_dashboard</span>
-      <span class="font-label-md text-label-md">Dashboard</span>
-    </a>
-    <a class="flex items-center gap-base px-md py-sm rounded-lg transition-all duration-300 {% if active_nav == 'students' %}bg-primary text-on-primary shadow-md{% else %}text-inverse-on-surface/80 hover:bg-inverse-on-surface/10 hover:text-inverse-on-surface{% endif %}"
-       href="{% url 'admin_panel:students' %}">
-      <span class="material-symbols-outlined" {% if active_nav == 'students' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>groups</span>
-      <span class="font-label-md text-label-md">Estudiantes</span>
-    </a>
-    <a class="flex items-center gap-base px-md py-sm rounded-lg transition-all duration-300 {% if active_nav == 'courses' %}bg-primary text-on-primary shadow-md{% else %}text-inverse-on-surface/80 hover:bg-inverse-on-surface/10 hover:text-inverse-on-surface{% endif %}"
-       href="{% url 'admin_panel:courses' %}">
-      <span class="material-symbols-outlined" {% if active_nav == 'courses' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>menu_book</span>
-      <span class="font-label-md text-label-md">Materias</span>
-    </a>
-  </nav>
-
-  <!-- Bottom Profile -->
-  <div class="mt-auto pt-md border-t border-inverse-on-surface/10 flex flex-col gap-sm">
-    <div class="flex items-center gap-sm px-xs mb-xs">
-      <div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-sm shadow-sm">
-        {{ request.user.first_name.0|upper|default:"A" }}
-      </div>
-      <div class="flex-1 min-w-0">
-        <p class="font-label-sm text-label-sm truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
-        <p class="font-body-sm text-[11px] text-inverse-on-surface/60 truncate">{{ request.user.email }}</p>
-      </div>
-    </div>
-    <a href="{% url 'authentication:logout' %}" class="flex items-center gap-base px-md py-sm text-error/90 hover:bg-error-container/10 hover:text-error rounded-lg transition-colors">
-      <span class="material-symbols-outlined text-[20px]">logout</span>
-      <span class="font-label-md text-label-md">Cerrar sesión</span>
-    </a>
+</td>
+<td class="px-4 py-3">
+  <span class="inline-block px-2 py-0.5 rounded bg-surface border border-outline-variant/50 font-code-sm text-code-sm text-on-surface font-medium">
+    {{ item.profile.user.username }}
+  </span>
+</td>
+<td class="px-4 py-3">
+  <div class="flex flex-col">
+    <span class="text-body-sm font-body-sm font-medium text-on-surface">{{ item.profile.program.name|default:"Sin programa asignado" }}</span>
+    <span class="text-[11px] text-outline">{{ item.profile.program.code|default:"General" }}</span>
   </div>
-</aside>
-
-<!-- ════════════════════ MAIN ════════════════════ -->
-<main class="ml-64 flex-1 flex flex-col min-h-screen">
-
-  <div class="px-margin py-margin flex flex-col gap-gutter flex-1">
-
-    <!-- Breadcrumbs + Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-base">
-      <div>
-        <nav class="flex items-center gap-2 mb-2 text-on-surface-variant font-label-md text-label-md">
-          <a class="hover:text-primary transition-colors" href="{% url 'admin_panel:dashboard' %}">Admin</a>
-          <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-          <span class="text-primary font-bold">Estudiantes</span>
-        </nav>
-        <h1 class="font-headline-xl text-headline-xl text-on-surface">Gestión de Estudiantes</h1>
-      </div>
-      <!-- TODO Fase 2: abrir drawer de registro -->
-      <button id="btn-nuevo-estudiante" class="flex items-center justify-center gap-2 bg-primary text-on-primary font-label-md text-label-md py-sm px-md rounded-lg hover:bg-surface-tint transition-colors shadow-sm self-start md:self-auto">
-        <span class="material-symbols-outlined">add</span>
-        Registrar nuevo estudiante
+</td>
+<td class="px-4 py-3 text-center">
+  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-container-high text-on-surface font-medium">
+    {{ item.profile.current_semester }}° Sem.
+  </span>
+</td>
+<td class="px-4 py-3">
+  <div class="flex flex-col gap-1.5">
+    <div class="flex items-center justify-between text-body-sm font-body-sm">
+      <span class="font-semibold text-on-surface">{{ item.progress_pct }}%</span>
+      <span class="text-[11px] text-outline font-code-sm">{{ item.passed_credits }} / {{ item.total_prog_credits }} cr</span>
+    </div>
+    <div class="w-full bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+      <div class="bg-secondary h-1.5 rounded-full" style="width: {{ item.progress_pct }}%"></div>
+    </div>
+  </div>
+</td>
+<td class="px-4 py-3">
+  <div class="flex flex-wrap items-center gap-1.5">
+    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-label-sm font-medium bg-tertiary-fixed/30 text-on-tertiary-container border border-tertiary-fixed">
+      Cuenta Activa
+    </span>
+    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-label-sm font-semibold {{ item.risk_class }}">
+      {{ item.risk_label }}
+    </span>
+  </div>
+</td>
+<td class="px-4 py-3 text-right">
+  <div class="inline-flex items-center gap-1.5">
+    <a href="{% url 'admin_panel:student_detail' item.profile.id %}" class="px-2.5 py-1 rounded bg-surface-container-lowest border border-outline-variant hover:bg-surface text-body-sm font-body-sm text-on-surface font-medium transition-colors" title="Ver expediente">
+      Ver perfil
+    </a>
+    <button onclick="openEditDrawer('{{ item.profile.id }}', '{{ item.profile.user.first_name|escapejs }}', '{{ item.profile.user.last_name|escapejs }}', '{{ item.profile.user.email|escapejs }}', '{{ item.profile.program.id|default:'' }}', '{{ item.profile.current_semester }}')" class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface transition-colors" title="Editar estudiante" type="button">
+      <span class="material-symbols-outlined text-[18px]">edit</span>
+    </button>
+    <form method="POST" action="{% url 'admin_panel:students' %}" class="inline-block m-0 p-0" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este estudiante y su expediente?');">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_student">
+      <input type="hidden" name="student_id" value="{{ item.profile.id }}">
+      <button type="submit" class="p-1 rounded text-outline hover:text-error hover:bg-error-container/30 transition-colors" title="Eliminar estudiante">
+        <span class="material-symbols-outlined text-[18px]">delete</span>
       </button>
-    </div>
-
-    <!-- Search & Filter Bar -->
-    <form method="GET" class="flex flex-col md:flex-row gap-base items-center w-full bg-surface-container-lowest rounded-soft p-md shadow-soft" onchange="this.submit()">
-      <div class="relative w-full md:w-1/2 lg:w-1/3">
-        <span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-outline">search</span>
-        <input class="w-full pl-10 pr-4 py-sm rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all font-body-md text-body-md placeholder-on-surface-variant"
-          placeholder="Buscar por nombre, correo o código..." type="search" name="q" value="{{ request.GET.q }}"/>
-      </div>
-      <div class="relative w-full md:w-1/4">
-        <select name="program" class="w-full pl-4 pr-10 py-sm rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none transition-all font-body-md text-body-md appearance-none cursor-pointer">
-          <option value="">Todos los programas</option>
-          {% for prog in programs %}
-          <option value="{{ prog.id }}" {% if request.GET.program == prog.id|stringformat:"s" %}selected{% endif %}>{{ prog.name }}</option>
-          {% endfor %}
-        </select>
-        <span class="material-symbols-outlined absolute right-3 top-1/2 transform -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
-      </div>
-      <noscript><button type="submit" class="hidden">Filtrar</button></noscript>
     </form>
-
-    <!-- Table -->
-    <div class="bg-surface-container-lowest rounded-soft shadow-soft overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-[700px]">
-          <thead>
-            <tr class="bg-surface-container text-on-surface font-label-md text-label-md border-b border-outline-variant/50">
-              <th class="p-md font-bold">Nombre</th>
-              <th class="p-md font-bold">Usuario</th>
-              <th class="p-md font-bold">Programa</th>
-              <th class="p-md font-bold text-center">Semestre</th>
-              <th class="p-md font-bold text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="font-body-md text-body-md text-on-surface divide-y divide-outline-variant/30">
-            {% for student in students %}
-            <tr class="hover:bg-surface-container-lowest transition-colors group">
-              <td class="p-md">
-                <div class="flex items-center gap-sm">
-                  <div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-sm">
-                    {{ student.user.first_name.0|upper }}{{ student.user.last_name.0|upper }}
-                  </div>
-                  <span class="font-medium">{{ student.user.get_full_name|default:student.user.username }}</span>
-                </div>
-              </td>
-              <td class="p-md text-on-surface-variant">{{ student.user.username }}</td>
-              <td class="p-md">
-                <span class="inline-flex items-center px-2 py-1 rounded-full bg-surface-container-low text-primary font-label-sm text-label-sm">{{ student.program }}</span>
-              </td>
-              <td class="p-md text-center">{{ student.current_semester }}</td>
-              <td class="p-md text-right">
-                <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button type="button" onclick="openEditDrawer('{{ student.id }}', '{{ student.user.first_name|escapejs }}', '{{ student.user.last_name|escapejs }}', '{{ student.user.email|escapejs }}', '{{ student.program.id|default:'' }}', '{{ student.current_semester }}')" class="p-1 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-high">
-                    <span class="material-symbols-outlined text-[20px]">edit</span>
-                  </button>
-                  <form method="POST" action="{% url 'admin_panel:students' %}" class="inline-block m-0 p-0" onsubmit="return confirm('¿Estás seguro de que deseas eliminar a este estudiante? Esta acción no se puede deshacer.');">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="delete_student">
-                    <input type="hidden" name="student_id" value="{{ student.id }}">
-                    <button type="submit" class="p-1 text-on-surface-variant hover:text-error transition-colors rounded-full hover:bg-error-container">
-                      <span class="material-symbols-outlined text-[20px]">delete</span>
-                    </button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-            {% empty %}
-            <!-- Empty state -->
-            <tr>
-              <td colspan="5" class="p-xl text-center">
-                <div class="flex flex-col items-center gap-md py-lg">
-                  <span class="material-symbols-outlined text-[64px] text-primary opacity-20">group_off</span>
-                  <p class="font-headline-md text-headline-md text-on-surface">No hay estudiantes registrados</p>
-                  <p class="font-body-md text-body-md text-on-surface-variant max-w-sm">Comienza registrando el primer estudiante.</p>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <div class="p-md border-t border-outline-variant/30 flex items-center justify-between text-on-surface-variant font-label-md text-label-md">
-        <span>{{ students|length }} estudiante(s)</span>
-      </div>
-    </div>
   </div>
-</main>
+</td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="8" class="p-12 text-center">
+    <div class="flex flex-col items-center justify-center gap-3">
+      <span class="material-symbols-outlined text-[48px] text-outline">group_off</span>
+      <p class="text-body-lg font-medium text-on-surface">No se encontraron estudiantes</p>
+      <p class="text-body-sm text-on-surface-variant">Prueba ajustando los filtros de búsqueda o registra un nuevo estudiante.</p>
+    </div>
+  </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+<!-- PAGINATION BAR -->
+<div class="p-4 bg-surface-container-lowest border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-3 text-body-sm font-body-sm text-on-surface-variant">
+<span>Mostrando <strong class="text-on-surface font-medium">{{ filtered_count }}</strong> de <strong class="text-on-surface font-medium">{{ total_students_count }}</strong> estudiantes registrados</span>
+</div>
+<div class="inline-flex items-center gap-1">
+<span class="text-label-sm text-on-surface-variant">Página 1 de 1</span>
+</div>
+</div>
+</div>
 
 <!-- Drawer para nuevo estudiante -->
-<div id="drawer-nuevo-estudiante" class="fixed inset-y-0 right-0 w-[400px] bg-surface-container-lowest shadow-lg z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
-  <div class="p-md border-b border-outline-variant flex items-center justify-between">
-    <h2 class="font-headline-sm text-headline-sm text-on-surface">Registrar Estudiante</h2>
-    <button id="btn-cerrar-drawer-estudiante" class="material-symbols-outlined text-on-surface-variant hover:text-error transition-colors">close</button>
+<div id="drawer-nuevo-estudiante" class="fixed inset-y-0 right-0 w-[420px] max-w-full bg-surface-container-lowest shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col border-l border-outline-variant/40">
+  <div class="p-4 border-b border-outline-variant/40 flex items-center justify-between bg-surface">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-secondary">person_add</span>
+      <h2 class="text-headline-sm font-headline-sm font-bold text-on-surface">Registrar Estudiante</h2>
+    </div>
+    <button id="btn-cerrar-drawer-estudiante" class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-container transition-colors">
+      <span class="material-symbols-outlined">close</span>
+    </button>
   </div>
-  <div class="p-md flex-1 overflow-y-auto">
-    <form method="POST" action="{% url 'admin_panel:students' %}" class="flex flex-col gap-base">
+  <div class="p-6 flex-1 overflow-y-auto">
+    <form method="POST" action="{% url 'admin_panel:students' %}" class="flex flex-col gap-4">
       {% csrf_token %}
       <input type="hidden" name="action" value="create_student">
       
       <div>
-        <label class="block font-label-md text-label-md text-on-surface mb-xs">Nombre <span class="text-error">*</span></label>
-        <input name="first_name" required type="text" class="w-full px-sm py-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none">
+        <label class="block text-label-md font-label-md font-medium text-on-surface mb-1">Nombre <span class="text-error">*</span></label>
+        <input name="first_name" required type="text" class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none">
       </div>
       <div>
-        <label class="block font-label-md text-label-md text-on-surface mb-xs">Apellido</label>
-        <input name="last_name" type="text" class="w-full px-sm py-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none">
+        <label class="block text-label-md font-label-md font-medium text-on-surface mb-1">Apellido</label>
+        <input name="last_name" type="text" class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none">
       </div>
       <div>
-        <label class="block font-label-md text-label-md text-on-surface mb-xs">Correo Institucional <span class="text-error">*</span></label>
-        <input name="email" required type="email" class="w-full px-sm py-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none">
+        <label class="block text-label-md font-label-md font-medium text-on-surface mb-1">Correo Institucional <span class="text-error">*</span></label>
+        <input name="email" required type="email" placeholder="ejemplo@edupilot.edu" class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none">
       </div>
       <div>
-        <label class="block font-label-md text-label-md text-on-surface mb-xs">Código Estudiantil <span class="text-error">*</span></label>
-        <input name="student_code" required type="text" class="w-full px-sm py-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none">
-        <p class="text-label-sm text-on-surface-variant mt-1">Se usará como contraseña inicial.</p>
+        <label class="block text-label-md font-label-md font-medium text-on-surface mb-1">Código Estudiantil <span class="text-error">*</span></label>
+        <input name="student_code" required type="text" placeholder="EST-2025-01" class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none">
+        <p class="text-[12px] text-outline mt-1">Se usará también como contraseña de acceso inicial.</p>
       </div>
       <div>
-        <label class="block font-label-md text-label-md text-on-surface mb-xs">Programa <span class="text-error">*</span></label>
-        <select name="program_id" required class="w-full px-sm py-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none">
-          <option value="" disabled selected>Seleccione...</option>
+        <label class="block text-label-md font-label-md font-medium text-on-surface mb-1">Programa Académico <span class="text-error">*</span></label>
+        <select name="program_id" required class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none">
+          <option value="" disabled selected>Seleccione un programa...</option>
           {% for prog in programs %}
           <option value="{{ prog.id }}">{{ prog.name }}</option>
           {% endfor %}
         </select>
       </div>
       <div>
-        <label class="block font-label-md text-label-md text-on-surface mb-xs">Semestre Actual</label>
-        <input name="current_semester" type="number" min="1" max="12" value="1" class="w-full px-sm py-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none">
+        <label class="block text-label-md font-label-md font-medium text-on-surface mb-1">Semestre Actual</label>
+        <input name="current_semester" type="number" min="1" max="12" value="1" class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none">
       </div>
       
-      <button type="submit" class="w-full py-sm rounded-lg bg-primary text-on-primary font-label-md hover:bg-surface-tint transition-colors mt-base">
+      <button type="submit" class="w-full py-2.5 mt-2 rounded-lg bg-secondary text-surface-container-lowest font-medium hover:bg-on-secondary-container transition-colors shadow-sm">
         Guardar Estudiante
       </button>
     </form>
@@ -212,51 +375,57 @@
 </div>
 
 <!-- Drawer para editar estudiante -->
-<div id="drawer-editar-estudiante" class="fixed inset-y-0 right-0 w-[400px] bg-surface-container-lowest shadow-lg z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
-  <div class="p-md border-b border-outline-variant flex items-center justify-between">
-    <h2 class="font-headline-sm text-headline-sm text-on-surface">Editar Estudiante</h2>
-    <button id="btn-cerrar-drawer-editar" class="material-symbols-outlined text-on-surface-variant hover:text-error transition-colors">close</button>
+<div id="drawer-editar-estudiante" class="fixed inset-y-0 right-0 w-[420px] max-w-full bg-surface-container-lowest shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col border-l border-outline-variant/40">
+  <div class="p-4 border-b border-outline-variant/40 flex items-center justify-between bg-surface">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-secondary">edit</span>
+      <h2 class="text-headline-sm font-headline-sm font-bold text-on-surface">Editar Estudiante</h2>
+    </div>
+    <button id="btn-cerrar-drawer-editar" class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-container transition-colors">
+      <span class="material-symbols-outlined">close</span>
+    </button>
   </div>
-  <div class="p-md flex-1 overflow-y-auto">
-    <form method="POST" action="{% url 'admin_panel:students' %}" class="flex flex-col gap-base">
+  <div class="p-6 flex-1 overflow-y-auto">
+    <form method="POST" action="{% url 'admin_panel:students' %}" class="flex flex-col gap-4">
       {% csrf_token %}
       <input type="hidden" name="action" value="edit_student">
       <input type="hidden" name="student_id" id="edit-student-id">
       
       <div>
-        <label class="block font-label-md text-label-md text-on-surface mb-xs">Nombre <span class="text-error">*</span></label>
-        <input name="first_name" id="edit-first-name" required type="text" class="w-full px-sm py-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none">
+        <label class="block text-label-md font-label-md font-medium text-on-surface mb-1">Nombre <span class="text-error">*</span></label>
+        <input name="first_name" id="edit-first-name" required type="text" class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none">
       </div>
       <div>
-        <label class="block font-label-md text-label-md text-on-surface mb-xs">Apellido</label>
-        <input name="last_name" id="edit-last-name" type="text" class="w-full px-sm py-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none">
+        <label class="block text-label-md font-label-md font-medium text-on-surface mb-1">Apellido</label>
+        <input name="last_name" id="edit-last-name" type="text" class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none">
       </div>
       <div>
-        <label class="block font-label-md text-label-md text-on-surface mb-xs">Correo Institucional <span class="text-error">*</span></label>
-        <input name="email" id="edit-email" required type="email" class="w-full px-sm py-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none">
+        <label class="block text-label-md font-label-md font-medium text-on-surface mb-1">Correo Institucional <span class="text-error">*</span></label>
+        <input name="email" id="edit-email" required type="email" class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none">
       </div>
       <div>
-        <label class="block font-label-md text-label-md text-on-surface mb-xs">Programa <span class="text-error">*</span></label>
-        <select name="program_id" id="edit-program-id" required class="w-full px-sm py-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none">
-          <option value="" disabled>Seleccione...</option>
+        <label class="block text-label-md font-label-md font-medium text-on-surface mb-1">Programa Académico <span class="text-error">*</span></label>
+        <select name="program_id" id="edit-program-id" required class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none">
+          <option value="" disabled>Seleccione un programa...</option>
           {% for prog in programs %}
           <option value="{{ prog.id }}">{{ prog.name }}</option>
           {% endfor %}
         </select>
       </div>
       <div>
-        <label class="block font-label-md text-label-md text-on-surface mb-xs">Semestre Actual</label>
-        <input name="current_semester" id="edit-current-semester" type="number" min="1" max="12" class="w-full px-sm py-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:outline-none">
+        <label class="block text-label-md font-label-md font-medium text-on-surface mb-1">Semestre Actual</label>
+        <input name="current_semester" id="edit-current-semester" type="number" min="1" max="12" class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary focus:outline-none">
       </div>
       
-      <button type="submit" class="w-full py-sm rounded-lg bg-primary text-on-primary font-label-md hover:bg-surface-tint transition-colors mt-base">
-        Actualizar Estudiante
+      <button type="submit" class="w-full py-2.5 mt-2 rounded-lg bg-secondary text-surface-container-lowest font-medium hover:bg-on-secondary-container transition-colors shadow-sm">
+        Guardar Cambios
       </button>
     </form>
   </div>
 </div>
+
 <!-- Overlay -->
-<div id="drawer-overlay" class="fixed inset-0 bg-scrim/30 z-40 hidden opacity-0 transition-opacity duration-300"></div>
+<div id="drawer-overlay" class="fixed inset-0 bg-black/40 z-40 hidden opacity-0 transition-opacity duration-300"></div>
 
 <script>
   const btnNuevoEstudiante = document.getElementById('btn-nuevo-estudiante');
@@ -268,16 +437,19 @@
   const btnCerrarEditar = document.getElementById('btn-cerrar-drawer-editar');
 
   function openDrawer(drawer) {
+    if (!drawer) return;
     drawerOverlay.classList.remove('hidden');
     setTimeout(() => drawerOverlay.classList.remove('opacity-0'), 10);
     drawer.classList.remove('translate-x-full');
   }
 
   function closeAllDrawers() {
-    drawerEstudiante.classList.add('translate-x-full');
-    drawerEditar.classList.add('translate-x-full');
-    drawerOverlay.classList.add('opacity-0');
-    setTimeout(() => drawerOverlay.classList.add('hidden'), 300);
+    if (drawerEstudiante) drawerEstudiante.classList.add('translate-x-full');
+    if (drawerEditar) drawerEditar.classList.add('translate-x-full');
+    if (drawerOverlay) {
+      drawerOverlay.classList.add('opacity-0');
+      setTimeout(() => drawerOverlay.classList.add('hidden'), 300);
+    }
   }
   
   function openEditDrawer(id, firstName, lastName, email, programId, semester) {
@@ -290,9 +462,23 @@
     openDrawer(drawerEditar);
   }
 
-  btnNuevoEstudiante.addEventListener('click', () => openDrawer(drawerEstudiante));
-  btnCerrarDrawer.addEventListener('click', closeAllDrawers);
-  btnCerrarEditar.addEventListener('click', closeAllDrawers);
-  drawerOverlay.addEventListener('click', closeAllDrawers);
+  if (btnNuevoEstudiante) {
+    btnNuevoEstudiante.addEventListener('click', () => openDrawer(drawerEstudiante));
+  }
+  if (btnCerrarDrawer) btnCerrarDrawer.addEventListener('click', closeAllDrawers);
+  if (btnCerrarEditar) btnCerrarEditar.addEventListener('click', closeAllDrawers);
+  if (drawerOverlay) drawerOverlay.addEventListener('click', closeAllDrawers);
 </script>
+
+<!-- METHODOLOGICAL NOTE & INSTITUTIONAL TRANSPARENCY -->
+<footer class="mt-auto pt-2 pb-6 border-t border-outline-variant/20 flex flex-col md:flex-row items-center justify-between gap-3 text-body-sm font-body-sm text-outline">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">verified_user</span>
+<span>Nota metodológica: Los datos desplegados corresponden a registros de prueba para demostración técnica del sistema EduPilot v2.4.</span>
+</div>
+<div>
+<span>El estado administrativo de la cuenta no condiciona el estatus académico oficial del estudiante.</span>
+</div>
+</footer>
+</main>
 {% endblock %}

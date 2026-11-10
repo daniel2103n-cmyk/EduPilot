@@ -44,17 +44,20 @@
 
     <form class="flex flex-col gap-md" method="post" action="{% url 'authentication:login' %}">
       {% csrf_token %}
+      {% if next %}
+        <input type="hidden" name="next" value="{{ next }}"/>
+      {% endif %}
 
       <!-- Username/Email Field -->
       <div class="flex flex-col gap-xs">
-        <label class="font-label-md text-label-md text-on-surface" for="username">Correo electrónico</label>
+        <label class="font-label-md text-label-md text-on-surface" for="username">Usuario o Correo Institucional</label>
         <div class="relative">
           <div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-outline">
-            <span class="material-symbols-outlined text-[20px]">mail</span>
+            <span class="material-symbols-outlined text-[20px]">person</span>
           </div>
           <input
-            class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-sm pl-lg pr-sm font-body-md text-body-md text-on-surface placeholder:text-outline-variant focus:border-primary focus:border-[2px] focus:ring-4 focus:ring-primary-container/30 focus:outline-none transition-all duration-200"
-            id="username" name="username" placeholder="usuario o correo@institucion.edu" required type="text"/>
+            class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-sm pl-lg pr-sm font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-primary focus:border-[2px] focus:ring-4 focus:ring-primary-container/20 focus:outline-none transition-all duration-200"
+            id="username" name="username" placeholder="admin o código/correo de estudiante" required type="text" autocomplete="username"/>
         </div>
       </div>
 
@@ -66,8 +69,8 @@
             <span class="material-symbols-outlined text-[20px]">lock</span>
           </div>
           <input
-            class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-sm pl-lg pr-lg font-body-md text-body-md text-on-surface placeholder:text-outline-variant focus:border-primary focus:border-[2px] focus:ring-4 focus:ring-primary-container/30 focus:outline-none transition-all duration-200"
-            id="password" name="password" placeholder="••••••••" required type="password"/>
+            class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-sm pl-lg pr-lg font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-primary focus:border-[2px] focus:ring-4 focus:ring-primary-container/20 focus:outline-none transition-all duration-200"
+            id="password" name="password" placeholder="••••••••" required type="password" autocomplete="current-password"/>
           <button aria-label="Mostrar u ocultar contraseña" class="absolute inset-y-0 right-0 pr-sm flex items-center text-outline hover:text-on-surface transition-colors focus:outline-none" type="button"
             onclick="const i=document.getElementById('password'); i.type=i.type==='password'?'text':'password'">
             <span class="material-symbols-outlined text-[20px]">visibility_off</span>
@@ -76,15 +79,36 @@
       </div>
 
       <!-- Submit -->
-      <button class="w-full bg-primary text-on-primary font-label-md text-label-md py-sm rounded-lg hover:bg-on-primary-fixed-variant shadow-sm hover:shadow-md transition-all duration-200 mt-base flex justify-center items-center gap-base" type="submit">
-        Ingresar
+      <button class="w-full bg-primary text-on-primary font-label-md text-label-md py-sm rounded-lg hover:bg-on-primary-fixed-variant shadow-sm hover:shadow-md transition-all duration-200 mt-base flex justify-center items-center gap-base font-semibold" type="submit">
+        <span class="material-symbols-outlined text-[18px]">login</span>
+        <span>Iniciar Sesión</span>
       </button>
+
+      <!-- Botones de prueba rápida de credenciales -->
+      <div class="mt-2 pt-3 border-t border-outline-variant/30 text-xs">
+        <div class="text-on-surface-variant font-medium mb-1.5 flex items-center gap-1">
+          <span class="material-symbols-outlined text-[14px]">key</span>
+          <span>Acceso rápido de prueba:</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="document.getElementById('username').value='admin'; document.getElementById('password').value='admin123';"
+            class="px-2 py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface rounded border border-outline-variant/50 text-left transition-colors">
+            <span class="font-bold block text-[11px] text-secondary">👑 Administrador</span>
+            <span class="text-[10px] text-on-surface-variant font-mono">admin / admin123</span>
+          </button>
+          <button type="button" onclick="document.getElementById('username').value='1016004463'; document.getElementById('password').value='1016004463';"
+            class="px-2 py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface rounded border border-outline-variant/50 text-left transition-colors">
+            <span class="font-bold block text-[11px] text-primary">🎓 Estudiante</span>
+            <span class="text-[10px] text-on-surface-variant font-mono">1016004463</span>
+          </button>
+        </div>
+      </div>
     </form>
 
     <!-- Register Link -->
-    <div class="mt-lg text-center font-body-md text-body-md text-on-surface-variant">
+    <div class="mt-4 text-center font-body-md text-body-md text-on-surface-variant">
       <span>¿No tienes cuenta?</span>
-      <a class="font-label-md text-label-md text-primary hover:text-on-primary-fixed-variant transition-colors hover:underline ml-xs" href="{% url 'authentication:register_step1' %}">
+      <a class="font-label-md text-label-md text-primary hover:text-on-primary-fixed-variant transition-colors hover:underline ml-xs font-semibold" href="{% url 'authentication:register_step1' %}">
         Regístrate aquí
       </a>
     </div>

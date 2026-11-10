@@ -1,0 +1,2020 @@
+{% extends 'base_student.html' %}
+
+{% block page_title %}Historial Académico — EduPilot{% endblock %}
+
+{% block student_content %}
+<main class="flex-1 p-6 md:p-8 space-y-6 max-w-[1600px] w-full mx-auto">
+
+  <!-- ===================================================================== -->
+  <!-- 1. Header & Quick Actions Bar                                         -->
+  <!-- ===================================================================== -->
+  <section class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-outline-variant/40">
+    <div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <h1 class="text-headline-lg font-headline-lg text-on-surface font-bold tracking-tight">Historial Académico</h1>
+        <span class="px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-container-highest text-secondary font-semibold border border-outline-variant/60">
+          {{ profile.program.name|default:"Programa Académico" }}
+        </span>
+        <span class="px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-primary/10 text-primary font-medium">
+          Semestre Actual: {{ profile.current_semester|default:1 }}°
+        </span>
+      </div>
+      <p class="text-body-md font-body-md text-on-surface-variant mt-1">
+        Gestiona tus asignaturas cursadas, registra calificaciones y mantén al día tu avance hacia la titulación.
+      </p>
+    </div>
+
+    <!-- Action Buttons Group -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <!-- Fast Wizard Modal Trigger -->
+      <button type="button"
+              onclick="openBulkRegisterModal()"
+              class="inline-flex items-center gap-2 px-4 py-2.5 bg-secondary text-surface-container-lowest hover:bg-on-secondary-container rounded-xl text-label-md font-label-md font-semibold shadow-sm hover:shadow transition-all hover:-translate-y-0.5 active:translate-y-0">
+        <span class="material-symbols-outlined text-[20px]">bolt</span>
+        <span>Carga Rápida</span>
+      </button>
+
+      <!-- Single Subject Modal Trigger -->
+      <button type="button"
+              onclick="openSingleRecordModal()"
+              class="inline-flex items-center gap-2 px-4 py-2.5 bg-surface-container-lowest text-on-surface hover:bg-surface-container-low border border-outline-variant/70 rounded-xl text-label-md font-label-md font-medium shadow-xs transition-colors">
+        <span class="material-symbols-outlined text-[20px] text-secondary">add_circle</span>
+        <span>Registrar Materia</span>
+      </button>
+
+      <!-- Autofill Trigger Form -->
+      <form method="POST" action="{% url 'student:courses_autofill' %}" class="inline" onsubmit="return confirmAutofill(event)">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="student:historial">
+        <button type="submit"
+                title="Autocompletar automáticamente materias sugeridas hasta tu semestre actual"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-xl text-label-md font-label-md border border-outline-variant/40 transition-colors">
+          <span class="material-symbols-outlined text-[19px] text-outline">auto_fix_high</span>
+          <span>Autollenar</span>
+        </button>
+      </form>
+
+      <!-- Limpiar Semestre Específico -->
+      {% if sorted_semesters %}
+      <button type="button"
+              onclick="openClearSemesterModal()"
+              title="Eliminar las materias de un semestre específico"
+              class="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-surface-container text-on-surface-variant hover:text-rose-700 hover:bg-rose-50 border border-outline-variant/60 hover:border-rose-200 rounded-xl text-label-md font-label-md font-medium transition-colors">
+        <span class="material-symbols-outlined text-[19px]">event_busy</span>
+        <span>Limpiar Semestre</span>
+      </button>
+      {% endif %}
+
+      <!-- Limpiar Todo el Historial -->
+      {% if sorted_semesters %}
+      <button type="button"
+              onclick="openClearAllModal()"
+              title="Eliminar todo el historial académico y empezar de cero"
+              class="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 rounded-xl text-label-md font-label-md font-medium transition-colors">
+        <span class="material-symbols-outlined text-[19px]">delete_sweep</span>
+        <span>Limpiar Todo</span>
+      </button>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 2. Academic KPIs Grid                                                 -->
+  <!-- ===================================================================== -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- KPI 1: Promedio Acumulado -->
+    <div class="bg-surface-container-lowest border border-outline-variant/70 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+      <div class="flex items-center justify-between text-on-surface-variant">
+        <span class="text-label-md font-label-md font-medium">Promedio Acumulado</span>
+        <span class="material-symbols-outlined text-secondary">analytics</span>
+      </div>
+      <div class="my-3 flex items-baseline gap-2">
+        <span class="text-headline-xl font-headline-xl font-bold {% if academic_summary.average_grade and academic_summary.average_grade >= 3.0 %}text-emerald-700{% elif academic_summary.average_grade %}text-rose-600{% else %}text-on-surface{% endif %}">
+          {{ academic_summary.average_grade|default:"0.0" }}
+        </span>
+        <span class="text-body-sm font-body-sm text-on-surface-variant">/ 5.0</span>
+      </div>
+      <div class="text-label-sm font-label-sm text-on-surface-variant flex items-center justify-between">
+        <span>Estado académico:</span>
+        {% if academic_summary.average_grade and academic_summary.average_grade >= 3.8 %}
+          <span class="font-semibold text-emerald-700">Sobresaliente</span>
+        {% elif academic_summary.average_grade and academic_summary.average_grade >= 3.0 %}
+          <span class="font-semibold text-sky-700">Satisfactorio</span>
+        {% elif academic_summary.average_grade %}
+          <span class="font-semibold text-rose-600">En riesgo</span>
+        {% else %}
+          <span class="text-outline">Sin registros</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- KPI 2: Créditos Aprobados y Avance -->
+    <div class="bg-surface-container-lowest border border-outline-variant/70 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+      <div class="flex items-center justify-between text-on-surface-variant">
+        <span class="text-label-md font-label-md font-medium">Créditos Aprobados</span>
+        <span class="material-symbols-outlined text-emerald-600">verified</span>
+      </div>
+      <div class="my-3 flex items-baseline gap-2">
+        <span class="text-headline-xl font-headline-xl font-bold text-on-surface">
+          {{ academic_summary.credits_approved }}
+        </span>
+        <span class="text-body-sm font-body-sm text-on-surface-variant">/ {{ total_program_credits }} créditos</span>
+      </div>
+      <div>
+        <div class="flex items-center justify-between text-label-sm font-label-sm mb-1.5">
+          <span class="text-on-surface-variant">Progreso del plan</span>
+          <span class="font-bold text-secondary">{{ academic_summary.progress_pct }}%</span>
+        </div>
+        <div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+          <div class="bg-secondary h-full rounded-full transition-all duration-700" style="width: {{ academic_summary.progress_pct }}%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI 3: Materias Aprobadas y Reprobadas -->
+    <div class="bg-surface-container-lowest border border-outline-variant/70 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+      <div class="flex items-center justify-between text-on-surface-variant">
+        <span class="text-label-md font-label-md font-medium">Asignaturas Superadas</span>
+        <span class="material-symbols-outlined text-emerald-600">check_circle</span>
+      </div>
+      <div class="my-3 flex items-baseline gap-2">
+        <span class="text-headline-xl font-headline-xl font-bold text-emerald-700">
+          {{ academic_summary.courses_passed }}
+        </span>
+        <span class="text-body-sm font-body-sm text-on-surface-variant">de {{ total_program_courses }} materias</span>
+      </div>
+      <div class="flex items-center gap-3 text-label-sm font-label-sm">
+        <span class="text-emerald-700 flex items-center gap-1">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+          {{ academic_summary.courses_passed }} aprobadas
+        </span>
+        {% if academic_summary.courses_failed > 0 %}
+          <span class="text-rose-600 flex items-center gap-1 font-medium">
+            <span class="inline-block w-2 h-2 rounded-full bg-rose-500"></span>
+            {{ academic_summary.courses_failed }} reprobadas
+          </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- KPI 4: Materias en Curso y Restantes -->
+    <div class="bg-surface-container-lowest border border-outline-variant/70 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+      <div class="flex items-center justify-between text-on-surface-variant">
+        <span class="text-label-md font-label-md font-medium">Actividad Actual</span>
+        <span class="material-symbols-outlined text-cyan-600">pending_actions</span>
+      </div>
+      <div class="my-3 flex items-baseline gap-2">
+        <span class="text-headline-xl font-headline-xl font-bold text-cyan-700">
+          {{ academic_summary.courses_in_progress }}
+        </span>
+        <span class="text-body-sm font-body-sm text-on-surface-variant">materias en curso</span>
+      </div>
+      <div class="text-label-sm font-label-sm text-on-surface-variant flex items-center justify-between">
+        <span>Créditos restantes:</span>
+        <span class="font-code-sm font-bold text-on-surface">{{ remaining_credits }}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 3. Dynamic Quick Banner: Si faltan registrar materias                   -->
+  <!-- ===================================================================== -->
+  {% if not sorted_semesters %}
+    <div class="bg-gradient-to-r from-secondary/10 via-surface-container-low to-primary/5 border border-secondary/20 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+      <div class="flex items-start gap-4">
+        <div class="w-12 h-12 rounded-xl bg-secondary/15 text-secondary flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-[28px]">speed</span>
+        </div>
+        <div>
+          <h2 class="text-headline-sm font-headline-sm text-on-surface font-bold">¡Tu historial académico está vacío!</h2>
+          <p class="text-body-md font-body-md text-on-surface-variant mt-0.5 max-w-2xl">
+            Para que el sistema de recomendaciones, rutas proyectadas y cálculo de prerequisitos funcione al 100%, carga las materias que ya has cursado en semestres anteriores.
+          </p>
+        </div>
+      </div>
+      <div class="shrink-0">
+        <button type="button"
+                onclick="openBulkRegisterModal()"
+                class="px-5 py-2.5 bg-secondary text-surface-container-lowest hover:bg-on-secondary-container rounded-xl text-label-md font-label-md font-semibold shadow-sm transition-all">
+          Iniciar Carga Rápida
+        </button>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- ===================================================================== -->
+  <!-- 3b. Panel de Materias Atrasadas / Obligatorias                         -->
+  <!-- ===================================================================== -->
+  {% if delayed_courses %}
+    <section class="bg-amber-50 border border-amber-300 rounded-2xl shadow-xs overflow-hidden">
+      <div class="px-5 py-3.5 bg-amber-100/70 border-b border-amber-200 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <span class="material-symbols-outlined text-amber-700 text-[22px]">warning</span>
+          <div>
+            <h3 class="text-label-md font-label-md font-bold text-amber-900">
+              Materias Atrasadas
+              {% if mandatory_course_ids %}
+                &mdash; <span class="text-rose-700">{{ mandatory_course_ids|length }} obligatoria{% if mandatory_course_ids|length != 1 %}s{% endif %} (3+ semestres)</span>
+              {% endif %}
+            </h3>
+            <p class="text-label-sm font-label-sm text-amber-800">
+              Estas materias debías haberlas cursado en semestres anteriores y aún no están aprobadas.
+              {% if mandatory_course_ids %} Las marcadas con rojo son <strong>obligatorias</strong> y deben incluirse en tu próximo semestre.{% endif %}
+            </p>
+          </div>
+        </div>
+        <button onclick="this.closest('section').querySelector('.delayed-body').classList.toggle('hidden')" class="text-amber-600 hover:text-amber-900 p-1 rounded-lg shrink-0">
+          <span class="material-symbols-outlined text-[18px]">expand_less</span>
+        </button>
+      </div>
+      <div class="delayed-body px-5 py-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          {% for dc in delayed_courses %}
+            <div class="flex items-start gap-3 p-3 rounded-xl border {% if dc.is_mandatory %}bg-rose-50 border-rose-200{% else %}bg-white border-amber-200{% endif %}">
+              <div class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center {% if dc.is_mandatory %}bg-rose-100 text-rose-600{% else %}bg-amber-100 text-amber-700{% endif %}">
+                <span class="material-symbols-outlined text-[18px]">{% if dc.is_mandatory %}error{% else %}schedule{% endif %}</span>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-label-md font-label-md font-semibold text-on-surface leading-snug">
+                  {% if dc.is_mandatory %}<span class="text-rose-600 font-bold">[OBL] </span>{% endif %}{{ dc.name }}
+                </p>
+                <p class="text-label-sm font-label-sm text-on-surface-variant">
+                  Sem. {{ dc.level }} &bull; {{ dc.credits }} cr.
+                  &bull; <span class="{% if dc.is_mandatory %}text-rose-700 font-semibold{% else %}text-amber-700{% endif %}">
+                    {% if dc.is_mandatory %}Obligatoria ({{ dc.delay }} sem. de retraso){% else %}{{ dc.delay }} sem. de retraso{% endif %}
+                  </span>
+                </p>
+              </div>
+              <button type="button"
+                      onclick="openSingleRecordModal({course_id:'{{ dc.id }}',course_name:'{{ dc.name|escapejs }}',semester_taken:'{{ max_allowed_semester }}',status:'{{ dc.existing_status }}',grade:'{{ dc.existing_grade|default_if_none:'' }}'})"
+                      class="shrink-0 p-1.5 text-secondary hover:bg-secondary/10 rounded-lg transition-colors"
+                      title="Registrar ahora">
+                <span class="material-symbols-outlined text-[18px]">edit_note</span>
+              </button>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  <!-- ===================================================================== -->
+  <!-- 4. Navigation & Filter Bar                                            -->
+  <!-- ===================================================================== -->
+  <section class="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/60 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+    <!-- View Mode Switcher -->
+    <div class="inline-flex p-1 bg-surface-container rounded-xl border border-outline-variant/50 self-start">
+      <button id="btn-view-semesters"
+              type="button"
+              onclick="switchHistorialView('semesters')"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-lowest text-secondary shadow-xs text-label-md font-label-md font-semibold transition-all">
+        <span class="material-symbols-outlined text-[18px]">calendar_view_month</span>
+        <span>Por Semestres</span>
+      </button>
+      <button id="btn-view-all"
+              type="button"
+              onclick="switchHistorialView('all')"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-on-surface-variant hover:text-on-surface text-label-md font-label-md font-medium transition-all">
+        <span class="material-symbols-outlined text-[18px]">view_list</span>
+        <span>Plan Completo</span>
+      </button>
+    </div>
+
+    <!-- Search Input & Quick Filter Badges -->
+    <div class="flex items-center gap-3 flex-1 max-w-xl">
+      <div class="relative flex-1">
+        <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+        <input type="text"
+               id="historial-search"
+               onkeyup="filterHistorialTables()"
+               placeholder="Filtrar por código o nombre de materia..."
+               class="w-full pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-body-md font-body-md text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all placeholder:text-outline"/>
+      </div>
+
+      <select id="historial-status-filter"
+              onchange="filterHistorialTables()"
+              class="bg-surface-container-low border border-outline-variant/60 rounded-xl px-3 py-2 text-label-md font-label-md text-on-surface outline-none focus:border-secondary">
+        <option value="ALL">Todos los estados</option>
+        <option value="PASSED">Aprobadas</option>
+        <option value="IN_PROGRESS">En curso</option>
+        <option value="FAILED">Reprobadas</option>
+        <option value="PENDING">Pendientes</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 5. View Mode: POR SEMESTRES (Chronological Cards)                     -->
+  <!-- ===================================================================== -->
+  <section id="view-semesters-container" class="space-y-6">
+    {% if sorted_semesters %}
+      {% for sem in sorted_semesters %}
+        <div class="semester-block bg-surface-container-lowest border border-outline-variant/70 rounded-2xl shadow-xs overflow-hidden transition-all duration-200"
+             data-semester="{{ sem.semester }}">
+          
+          <!-- Semester Header -->
+          <div class="px-6 py-4 bg-surface-container-low/60 border-b border-outline-variant/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3 flex-wrap">
+              <span class="w-9 h-9 rounded-xl bg-secondary/10 text-secondary font-bold text-headline-sm flex items-center justify-center">
+                {{ sem.semester }}
+              </span>
+              <div>
+                <h3 class="text-headline-sm font-headline-sm font-bold text-on-surface">
+                  Semestre {{ sem.semester }}
+                </h3>
+                <span class="text-label-sm font-label-sm text-on-surface-variant">
+                  {{ sem.records|length }} asignatura{% if sem.records|length != 1 %}s{% endif %} registrada{% if sem.records|length != 1 %}s{% endif %} • {{ sem.credits }} créditos
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 flex-wrap">
+              <!-- Semester Average Badge -->
+              {% if sem.average %}
+                <div class="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-surface-container-lowest border border-outline-variant/60 shadow-xs">
+                  <span class="text-label-sm font-label-sm text-on-surface-variant">Promedio:</span>
+                  <span class="text-label-md font-label-md font-bold {% if sem.average >= 3.8 %}text-emerald-700{% elif sem.average >= 3.0 %}text-sky-700{% else %}text-rose-600{% endif %}">
+                    {{ sem.average }}
+                  </span>
+                </div>
+              {% endif %}
+
+              <!-- Quick Edit Semester Button -->
+              <button type="button"
+                      onclick="openBulkRegisterModal({{ sem.semester }})"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-lowest text-secondary hover:bg-secondary/10 border border-secondary/30 rounded-lg text-label-sm font-label-sm font-semibold transition-colors">
+                <span class="material-symbols-outlined text-[16px]">edit</span>
+                <span>Modificar Semestre</span>
+              </button>
+
+              <!-- Quick Clear Semester Button -->
+              <button type="button"
+                      onclick="openClearSemesterModal({{ sem.semester }}, {{ sem.records|length }})"
+                      title="Eliminar todas las asignaturas del Semestre {{ sem.semester }}"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 hover:border-rose-300 rounded-lg text-label-sm font-label-sm font-semibold transition-colors">
+                <span class="material-symbols-outlined text-[16px]">delete_sweep</span>
+                <span>Limpiar Semestre</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Subjects Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-outline-variant/40 bg-surface-container-lowest text-label-sm font-label-sm text-on-surface-variant font-semibold">
+                  <th class="px-6 py-3">Código</th>
+                  <th class="px-6 py-3">Asignatura</th>
+                  <th class="px-6 py-3 text-center">Créditos</th>
+                  <th class="px-6 py-3 text-center">Nota</th>
+                  <th class="px-6 py-3">Estado</th>
+                  <th class="px-6 py-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-outline-variant/30 text-body-md font-body-md">
+                {% for record in sem.records %}
+                  <tr class="course-row transition-colors {% if record.status == 'FAILED' %}bg-rose-50/40 hover:bg-rose-50/70 border-l-4 border-l-rose-500{% else %}hover:bg-surface-container-low/40{% endif %}"
+                      data-course-id="{{ record.course.id }}"
+                      data-code="{{ record.course.code|lower }}"
+                      data-name="{{ record.course.name|lower }}"
+                      data-status="{{ record.status }}">
+                    <td class="px-6 py-3.5 font-code-sm font-semibold text-secondary">
+                      {{ record.course.code }}
+                    </td>
+                    <td class="px-6 py-3.5">
+                      <div class="font-medium text-on-surface flex items-center flex-wrap gap-2">
+                        <span>{{ record.course.name }}</span>
+                        {% if record.status == 'FAILED' %}
+                          <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300">
+                            Intento {{ record.attempt_number|default:1 }}
+                          </span>
+                        {% elif record.is_retake_success %}
+                          <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            Repetición aprobada ({{ record.attempt_number }}° intento)
+                          </span>
+                        {% endif %}
+                      </div>
+                      <div class="text-label-sm font-label-sm text-on-surface-variant flex items-center flex-wrap gap-2 mt-0.5">
+                        <span>Nivel sugerido: Semestre {{ record.course.level }}</span>
+                        {% if record.course.credits %}
+                          <span>&bull; {{ record.course.credits }} créditos</span>
+                        {% endif %}
+                      </div>
+
+                      <!-- Sub-badges de estado de repetición/resolución para reprobadas -->
+                      {% if record.status == 'FAILED' %}
+                        <div class="mt-1 flex items-center flex-wrap gap-1.5">
+                          {% if record.was_retaken_and_passed %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-100/90 text-emerald-800 border border-emerald-300"
+                                  title="Aprobada en el Semestre {{ record.retaken_in_semester }}">
+                              <span class="material-symbols-outlined text-[13px]">check_circle</span>
+                              <span>Superada en Semestre {{ record.retaken_in_semester }} (Nota: {{ record.retaken_grade|floatformat:1 }})</span>
+                            </span>
+                          {% elif record.is_retaking_now %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-cyan-100/90 text-cyan-800 border border-cyan-300">
+                              <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
+                              <span>Cursando repetición en Semestre {{ record.retaking_in_semester }}</span>
+                            </span>
+                          {% elif record.is_unresolved_fail %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                              <span class="material-symbols-outlined text-[13px]">warning</span>
+                              <span>Pendiente de repetición (Intento {{ record.attempt_number|default:1 }}/3)</span>
+                            </span>
+                          {% endif %}
+                        </div>
+                      {% elif record.is_retake_success and record.previous_fail_semesters %}
+                        <div class="mt-1">
+                          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span class="material-symbols-outlined text-[13px]">history</span>
+                            <span>Aprobada tras reprobar en Semestre {{ record.previous_fail_semesters|join:', ' }}</span>
+                          </span>
+                        </div>
+                      {% endif %}
+                    </td>
+                    <td class="px-6 py-3.5 text-center font-code-sm">
+                      <span class="px-2.5 py-0.5 rounded-md bg-surface-container text-on-surface font-semibold text-label-sm">
+                        {{ record.course.credits }} cr.
+                      </span>
+                    </td>
+                    <td class="px-6 py-3.5 text-center">
+                      {% if record.grade is not None %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg font-code-sm font-bold text-label-md
+                          {% if record.grade >= 4.0 %}
+                            bg-emerald-100 text-emerald-800 border border-emerald-300
+                          {% elif record.grade >= 3.0 %}
+                            bg-sky-100 text-sky-800 border border-sky-300
+                          {% else %}
+                            bg-rose-100 text-rose-800 border border-rose-300
+                          {% endif %}">
+                          {{ record.grade|floatformat:1 }}
+                        </span>
+                      {% else %}
+                        <span class="text-outline text-label-sm font-code-sm">—</span>
+                      {% endif %}
+                    </td>
+                    <td class="px-6 py-3.5">
+                      {% if record.status == 'PASSED' %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <span class="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+                          <span>Aprobada</span>
+                        </span>
+                      {% elif record.status == 'IN_PROGRESS' %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-semibold bg-cyan-50 text-cyan-800 border border-cyan-200">
+                          <span class="material-symbols-outlined text-[16px] text-cyan-600 animate-spin">sync</span>
+                          <span>En curso</span>
+                        </span>
+                      {% elif record.status == 'FAILED' %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-bold bg-rose-100 text-rose-800 border border-rose-300 shadow-xs">
+                          <span class="material-symbols-outlined text-[16px] text-rose-600">cancel</span>
+                          <span>Reprobada</span>
+                        </span>
+                      {% else %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-medium bg-surface-container text-on-surface-variant">
+                          <span>{{ record.status }}</span>
+                        </span>
+                      {% endif %}
+                    </td>
+                    <td class="px-6 py-3.5 text-right">
+                      <div class="inline-flex items-center gap-1">
+                        <!-- Edit Record Button -->
+                        <button type="button"
+                                onclick="openSingleRecordModal({
+                                  record_id: '{{ record.id }}',
+                                  course_id: '{{ record.course.id }}',
+                                  course_name: '{{ record.course.name|escapejs }}',
+                                  semester_taken: '{{ record.semester_taken }}',
+                                  status: '{{ record.status }}',
+                                  grade: '{{ record.grade|default_if_none:"" }}'
+                                })"
+                                title="Editar calificación o semestre"
+                                class="p-1.5 text-on-surface-variant hover:text-secondary hover:bg-secondary/10 rounded-lg transition-colors">
+                          <span class="material-symbols-outlined text-[18px]">edit</span>
+                        </button>
+                        <!-- Delete Record Button -->
+                        <button type="button"
+                                onclick="confirmDeleteRecord('{{ record.id }}', '{{ record.course.name|escapejs }}', '{{ record.semester_taken }}')"
+                                title="Eliminar del historial"
+                                class="p-1.5 text-on-surface-variant hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                          <span class="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-12 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-surface-container text-outline mx-auto flex items-center justify-center mb-4">
+          <span class="material-symbols-outlined text-[36px]">history_edu</span>
+        </div>
+        <h3 class="text-headline-md font-headline-md font-bold text-on-surface">No hay materias registradas</h3>
+        <p class="text-body-md font-body-md text-on-surface-variant max-w-md mx-auto mt-1 mb-6">
+          Comienza cargando las notas de tus semestres con la herramienta ágil para desbloquear tus rutas recomendadas.
+        </p>
+        <button type="button"
+                onclick="openBulkRegisterModal(1)"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-secondary text-surface-container-lowest hover:bg-on-secondary-container rounded-xl text-label-md font-label-md font-semibold shadow-sm transition-all">
+          <span class="material-symbols-outlined text-[20px]">bolt</span>
+          <span>Cargar Semestre 1 Ahora</span>
+        </button>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 6. View Mode: PLAN COMPLETO (Table with all curriculum subjects)       -->
+  <!-- ===================================================================== -->
+  <section id="view-all-container" class="hidden bg-surface-container-lowest border border-outline-variant/70 rounded-2xl shadow-xs overflow-hidden">
+    <div class="px-6 py-4 bg-surface-container-low/60 border-b border-outline-variant/50 flex items-center justify-between">
+      <div>
+        <h3 class="text-headline-sm font-headline-sm font-bold text-on-surface">Plan de Estudios Completo</h3>
+        <p class="text-label-sm font-label-sm text-on-surface-variant">Estado curricular global de cada materia de tu carrera</p>
+      </div>
+      <span class="px-3 py-1 rounded-full text-label-sm font-label-sm bg-surface-container text-on-surface font-semibold">
+        {{ all_records|length }} Asignaturas
+      </span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="border-b border-outline-variant/40 bg-surface-container-lowest text-label-sm font-label-sm text-on-surface-variant font-semibold">
+            <th class="px-6 py-3">Nivel</th>
+            <th class="px-6 py-3">Código</th>
+            <th class="px-6 py-3">Asignatura</th>
+            <th class="px-6 py-3 text-center">Créditos</th>
+            <th class="px-6 py-3 text-center">Nota</th>
+            <th class="px-6 py-3">Estado</th>
+            <th class="px-6 py-3 text-right">Acción</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-outline-variant/30 text-body-md font-body-md">
+          {% for item in all_records %}
+            <tr class="course-row hover:bg-surface-container-low/40 transition-colors"
+                data-course-id="{{ item.course.id }}"
+                data-code="{{ item.course.code|lower }}"
+                data-name="{{ item.course.name|lower }}"
+                data-status="{{ item.status }}">
+              <td class="px-6 py-3 font-semibold text-on-surface-variant">
+                Sem. {{ item.course.level }}
+              </td>
+              <td class="px-6 py-3 font-code-sm font-semibold text-secondary">
+                {{ item.course.code }}
+              </td>
+              <td class="px-6 py-3">
+                <div class="font-medium text-on-surface flex items-center flex-wrap gap-2">
+                  <span>{{ item.course.name }}</span>
+                  {% if item.has_failed and item.is_passed %}
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                      Superada en repetición ({{ item.attempts_count }} intentos)
+                    </span>
+                  {% elif item.has_failed and not item.is_passed %}
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                      Reprobada previa ({{ item.attempts_count }} intento{% if item.attempts_count > 1 %}s{% endif %})
+                    </span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="px-6 py-3 text-center font-code-sm">
+                {{ item.course.credits }} cr.
+              </td>
+              <td class="px-6 py-3 text-center">
+                {% if item.grade is not None %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded font-code-sm font-bold text-label-md
+                    {% if item.grade >= 4.0 %}bg-emerald-100 text-emerald-800
+                    {% elif item.grade >= 3.0 %}bg-sky-100 text-sky-800
+                    {% else %}bg-rose-100 text-rose-800{% endif %}">
+                    {{ item.grade|floatformat:1 }}
+                  </span>
+                {% else %}
+                  <span class="text-outline text-label-sm font-code-sm">—</span>
+                {% endif %}
+              </td>
+              <td class="px-6 py-3">
+                {% if item.status == 'PASSED' %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    <span class="material-symbols-outlined text-[15px] text-emerald-600">check_circle</span>
+                    <span>Aprobada</span>
+                  </span>
+                {% elif item.status == 'IN_PROGRESS' %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm font-semibold bg-cyan-50 text-cyan-800 border border-cyan-200">
+                    <span class="material-symbols-outlined text-[15px] text-cyan-600">sync</span>
+                    <span>En curso</span>
+                  </span>
+                {% elif item.status == 'FAILED' %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                    <span class="material-symbols-outlined text-[15px] text-rose-600">cancel</span>
+                    <span>Reprobada</span>
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm font-medium bg-surface-container text-on-surface-variant">
+                    <span class="material-symbols-outlined text-[15px] text-outline">radio_button_unchecked</span>
+                    <span>Pendiente</span>
+                  </span>
+                {% endif %}
+              </td>
+              <td class="px-6 py-3 text-right">
+                <button type="button"
+                        onclick="openSingleRecordModal({
+                          course_id: '{{ item.course.id }}',
+                          course_name: '{{ item.course.name|escapejs }}',
+                          semester_taken: '{{ item.semester_taken|default:item.course.level }}',
+                          status: '{{ item.status|default:'PASSED' }}',
+                          grade: '{{ item.grade|default_if_none:'' }}'
+                        })"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 text-label-sm font-label-sm font-semibold text-secondary hover:bg-secondary/10 rounded-lg transition-colors">
+                  <span class="material-symbols-outlined text-[16px]">edit_note</span>
+                  <span>Registrar</span>
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+
+<!-- ========================================================================= -->
+<!-- MODAL 1: ASISTENTE ULTRA RÁPIDO DE REGISTRO POR SEMESTRE                  -->
+<!-- ========================================================================= -->
+<div id="modal-bulk-register" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+  <div class="bg-surface-container-lowest rounded-3xl border border-outline-variant/60 shadow-2xl max-w-5xl w-full overflow-hidden flex flex-col max-h-[94vh] animate-in fade-in zoom-in-95 duration-200">
+    
+    <!-- Modal Header -->
+    <div class="px-6 py-4 bg-surface-container-low/80 border-b border-outline-variant/50 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-3.5">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-secondary to-secondary/80 text-white flex items-center justify-center shadow-sm">
+          <span class="material-symbols-outlined text-[24px]">bolt</span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h3 class="text-headline-sm font-headline-sm font-bold text-on-surface">Carga Ágil por Semestre</h3>
+            <span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm font-semibold bg-secondary/10 text-secondary border border-secondary/20">
+              Asistente de Matrícula
+            </span>
+          </div>
+          <p class="text-label-sm font-label-sm text-on-surface-variant mt-0.5">
+            Registra calificaciones en bloque y añade materias cursadas cumpliendo prerrequisitos.
+          </p>
+        </div>
+      </div>
+      <button type="button" onclick="closeBulkRegisterModal()" class="text-outline hover:text-on-surface p-2 rounded-xl hover:bg-surface-container transition-colors">
+        <span class="material-symbols-outlined text-[22px]">close</span>
+      </button>
+    </div>
+
+    <!-- Controls Bar: Responsive 2-Row Layout (No button collisions) -->
+    <div class="px-6 py-3.5 border-b border-outline-variant/40 bg-surface-container-lowest shrink-0 space-y-3">
+      <!-- Row 1: Semester Selector + Danger Action -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
+          <label for="bulk-semester-select" class="text-label-md font-label-md font-bold text-on-surface flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-secondary text-[20px]">calendar_month</span>
+            <span>Semestre a Gestionar:</span>
+          </label>
+          <select id="bulk-semester-select"
+                  onchange="onBulkSemesterChange(this.value)"
+                  class="bg-surface-container-low border border-outline-variant/70 rounded-xl px-4 py-2 text-label-md font-label-md font-bold text-secondary outline-none focus:ring-2 focus:ring-secondary/40 shadow-xs">
+            {% for sem_num in semesters_range %}
+              <option value="{{ sem_num }}"
+                {% if sem_num == max_allowed_semester %}selected{% endif %}
+                {% if sem_num > max_allowed_semester %}disabled{% endif %}>
+                Semestre {{ sem_num }}{% if sem_num > max_allowed_semester %} — Bloqueado{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+          <span class="text-label-sm font-label-sm text-on-surface-variant">
+            (Máximo permitido: <strong>18 créditos</strong>)
+          </span>
+        </div>
+
+        <div>
+          <button type="button"
+                  onclick="openClearSemesterModal(document.getElementById('bulk-semester-select').value)"
+                  title="Vaciar las materias registradas de este semestre en la base de datos"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 rounded-xl text-label-sm font-label-sm font-semibold transition-colors">
+            <span class="material-symbols-outlined text-[16px]">delete_sweep</span>
+            <span>Vaciar materias de este semestre</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Row 2: Batch Quick Actions Bar -->
+      <div class="flex items-center justify-between gap-3 flex-wrap pt-1 border-t border-outline-variant/30">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-label-sm font-label-sm text-on-surface-variant font-medium mr-1">Aplicar a la lista:</span>
+          <button type="button"
+                  onclick="batchSetStatusAndGrade('PASSED', 4.0)"
+                  class="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300 text-label-sm font-label-sm font-semibold transition-colors flex items-center gap-1.5 shadow-2xs">
+            <span class="material-symbols-outlined text-[16px] text-emerald-600">done_all</span>
+            <span>Aprobar todo (4.0)</span>
+          </button>
+          <button type="button"
+                  onclick="batchSetStatusAndGrade('IN_PROGRESS', null)"
+                  class="px-3 py-1.5 rounded-xl bg-cyan-50 text-cyan-800 hover:bg-cyan-100 border border-cyan-300 text-label-sm font-label-sm font-semibold transition-colors flex items-center gap-1.5 shadow-2xs">
+            <span class="material-symbols-outlined text-[16px] text-cyan-600">sync</span>
+            <span>Poner en curso</span>
+          </button>
+          <button type="button"
+                  onclick="batchResetAll()"
+                  title="Restablecer selección a Omitir"
+                  class="px-3 py-1.5 rounded-xl bg-surface-container text-on-surface-variant hover:text-on-surface text-label-sm font-label-sm font-medium transition-colors flex items-center gap-1">
+            <span class="material-symbols-outlined text-[16px]">remove_done</span>
+            <span>Omitir todo</span>
+          </button>
+        </div>
+
+        <button type="button"
+                onclick="toggleAddEligiblePanel()"
+                id="btn-toggle-eligible"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary/10 text-secondary hover:bg-secondary/15 border border-secondary/30 text-label-sm font-label-sm font-semibold transition-colors">
+          <span class="material-symbols-outlined text-[17px]">add_circle</span>
+          <span>+ Agregar materia de otro semestre</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Panel Desplegable: Agregar Materias de Otros Semestres con Prerrequisitos Cumplidos -->
+    <div id="panel-add-eligible" class="hidden px-6 py-3.5 bg-gradient-to-r from-secondary/5 via-surface-container-low to-primary/5 border-b border-outline-variant/50 shrink-0">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
+        <div>
+          <h4 class="text-label-md font-label-md font-bold text-on-surface flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-secondary text-[18px]">verified</span>
+            <span>Materias Elegibles de Otros Semestres</span>
+          </h4>
+          <p class="text-label-sm font-label-sm text-on-surface-variant">
+            Materias sin prerrequisitos o cuyos prerrequisitos ya aprobaste en períodos anteriores.
+          </p>
+        </div>
+        <button type="button" onclick="toggleAddEligiblePanel()" class="text-outline hover:text-on-surface p-1 rounded-lg self-end sm:self-auto">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <!-- Buscador y Selector -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div class="relative flex-1">
+          <select id="select-eligible-course"
+                  class="w-full bg-surface-container-lowest border border-outline-variant/70 rounded-xl px-3.5 py-2 text-body-md font-body-md text-on-surface outline-none focus:border-secondary shadow-xs">
+            <!-- Dynamically populated via JS -->
+          </select>
+        </div>
+        <button type="button"
+                onclick="addSelectedEligibleCourse()"
+                class="px-4 py-2 bg-secondary text-white hover:bg-on-secondary-container rounded-xl text-label-md font-label-md font-semibold transition-colors flex items-center justify-center gap-1.5 shrink-0 shadow-xs">
+          <span class="material-symbols-outlined text-[18px]">add</span>
+          <span>Añadir al Semestre</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Scrollable Courses Table -->
+    <div class="flex-1 overflow-y-auto p-4 sm:p-6">
+      <div id="bulk-courses-loading" class="hidden text-center py-12">
+        <span class="material-symbols-outlined text-[36px] text-secondary animate-spin">progress_activity</span>
+        <p class="text-label-md font-label-md text-on-surface-variant mt-2 font-medium">Analizando plan de estudios y prerrequisitos...</p>
+      </div>
+
+      <div class="overflow-x-auto rounded-xl border border-outline-variant/50">
+        <table class="w-full text-left border-collapse" id="bulk-courses-table">
+          <thead>
+            <tr class="border-b border-outline-variant/50 bg-surface-container-low/60 text-label-sm font-label-sm text-on-surface-variant font-semibold">
+              <th class="px-4 py-3">Asignatura</th>
+              <th class="px-3 py-3 text-center w-24">Créditos</th>
+              <th class="px-3 py-3 w-48">Estado</th>
+              <th class="px-3 py-3 w-32 text-center">Nota (0.0 - 5.0)</th>
+              <th class="px-3 py-3 text-center w-16">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="bulk-courses-tbody" class="divide-y divide-outline-variant/30 text-body-md font-body-md bg-surface-container-lowest">
+            <!-- Dynamically populated via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div id="bulk-empty-message" class="hidden text-center py-12 text-on-surface-variant bg-surface-container-low/30 rounded-2xl border border-dashed border-outline-variant/60 mt-2">
+        <span class="material-symbols-outlined text-[40px] text-outline mb-2">library_books</span>
+        <p class="text-label-md font-label-md font-semibold text-on-surface">No hay materias asignadas a este semestre.</p>
+        <p class="text-label-sm font-label-sm text-on-surface-variant mt-0.5">Puedes usar el botón superior para agregar materias de otros semestres cuyos prerrequisitos hayas aprobado.</p>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="px-6 py-4 bg-surface-container-low/80 border-t border-outline-variant/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shrink-0">
+      <div id="bulk-summary-count" class="text-label-md font-label-md text-on-surface-variant">
+        0 materias listas para registrar
+      </div>
+      <div class="flex items-center justify-end gap-3">
+        <button type="button"
+                onclick="closeBulkRegisterModal()"
+                class="px-4 py-2.5 rounded-xl text-label-md font-label-md font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors">
+          Cancelar
+        </button>
+        <button type="button"
+                id="btn-save-bulk"
+                onclick="submitBulkSave()"
+                class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-secondary text-surface-container-lowest hover:bg-on-secondary-container rounded-xl text-label-md font-label-md font-semibold shadow-md transition-all hover:-translate-y-0.5 active:translate-y-0">
+          <span class="material-symbols-outlined text-[18px]">save</span>
+          <span>Guardar Semestre</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ========================================================================= -->
+<!-- MODAL 2: REGISTRO / EDICIÓN DE MATERIA INDIVIDUAL                          -->
+<!-- ========================================================================= -->
+<div id="modal-single-record" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+  <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <form id="form-single-record" method="POST" action="{% url 'student:historial_save' %}" onsubmit="handleSingleRecordSubmit(event)">
+      {% csrf_token %}
+      <input type="hidden" name="record_id" id="single-record-id" value="">
+
+      <!-- Header -->
+      <div class="px-6 py-4 bg-surface-container-low/70 border-b border-outline-variant/50 flex items-center justify-between">
+        <h3 class="text-headline-sm font-headline-sm font-bold text-on-surface" id="single-modal-title">
+          Registrar Asignatura
+        </h3>
+        <button type="button" onclick="closeSingleRecordModal()" class="text-outline hover:text-on-surface p-1 rounded-lg">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-6 space-y-4">
+        <!-- Course Selector -->
+        <div>
+          <label for="single-course-id" class="block text-label-md font-label-md font-semibold text-on-surface mb-1">
+            Asignatura:
+          </label>
+          <select name="course_id" id="single-course-id" required
+                  class="w-full bg-surface-container-low border border-outline-variant/70 rounded-xl px-3.5 py-2.5 text-body-md font-body-md text-on-surface focus:border-secondary outline-none">
+            <option value="">-- Selecciona una materia --</option>
+            {% for c in program_courses %}
+              <option value="{{ c.id }}" data-level="{{ c.level }}">
+                Sem. {{ c.level }} — {{ c.code }}: {{ c.name }} ({{ c.credits }} cr)
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Semester Taken -->
+        <div>
+          <label for="single-semester-taken" class="block text-label-md font-label-md font-semibold text-on-surface mb-1">
+            Semestre en que se cursó:
+          </label>
+          <select name="semester_taken" id="single-semester-taken" required
+                  class="w-full bg-surface-container-low border border-outline-variant/70 rounded-xl px-3.5 py-2.5 text-body-md font-body-md text-on-surface focus:border-secondary outline-none">
+            {% for s in semesters_range %}
+              <option value="{{ s }}"
+                {% if s > max_allowed_semester %}disabled{% endif %}>
+                Semestre {{ s }}{% if s > max_allowed_semester %} — Bloqueado{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+          {% if max_allowed_semester < 10 %}
+            <p class="text-label-sm font-label-sm text-amber-700 mt-1 flex items-center gap-1">
+              <span class="material-symbols-outlined text-[14px]">info</span>
+              Solo puedes registrar hasta el Semestre {{ max_allowed_semester }}. El registro es progresivo.
+            </p>
+          {% endif %}
+        </div>
+
+        <!-- Status -->
+        <div>
+          <label for="single-status" class="block text-label-md font-label-md font-semibold text-on-surface mb-1">
+            Estado:
+          </label>
+          <select name="status" id="single-status" onchange="onSingleStatusChange(this.value)" required
+                  class="w-full bg-surface-container-low border border-outline-variant/70 rounded-xl px-3.5 py-2.5 text-body-md font-body-md text-on-surface focus:border-secondary outline-none">
+            <option value="PASSED">Aprobada</option>
+            <option value="IN_PROGRESS">En curso</option>
+            <option value="FAILED">Reprobada</option>
+          </select>
+        </div>
+
+        <!-- Grade -->
+        <div id="single-grade-container">
+          <label for="single-grade" class="block text-label-md font-label-md font-semibold text-on-surface mb-1">
+            Calificación (0.0 a 5.0):
+          </label>
+          <input type="number"
+                 step="0.1"
+                 min="0.0"
+                 max="5.0"
+                 name="grade"
+                 id="single-grade"
+                 placeholder="Ej. 4.2"
+                 class="w-full bg-surface-container-low border border-outline-variant/70 rounded-xl px-3.5 py-2.5 text-body-md font-body-md font-code-sm text-on-surface focus:border-secondary outline-none"
+                 oninput="onSingleGradeInput(this.value)"/>
+          <p class="text-label-sm font-label-sm text-on-surface-variant mt-1">
+            Nota mínima de aprobación: 3.0. Si la nota es menor, pasará a Reprobada.
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 bg-surface-container-low/70 border-t border-outline-variant/50 flex items-center justify-end gap-3">
+        <button type="button" onclick="closeSingleRecordModal()" class="px-4 py-2 rounded-xl text-label-md font-label-md font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors">
+          Cancelar
+        </button>
+        <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-secondary text-surface-container-lowest hover:bg-on-secondary-container rounded-xl text-label-md font-label-md font-semibold shadow-sm transition-all">
+          <span class="material-symbols-outlined text-[18px]">save</span>
+          <span>Guardar Asignatura</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ========================================================================= -->
+<!-- MODAL 3: CONFIRMACIÓN DE ELIMINACIÓN                                     -->
+<!-- ========================================================================= -->
+<div id="modal-delete-confirm" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+  <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-2xl max-w-md w-full overflow-hidden p-6 animate-in fade-in zoom-in-95 duration-200">
+    <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
+      <span class="material-symbols-outlined text-[28px]">delete_forever</span>
+    </div>
+    <h3 class="text-headline-sm font-headline-sm font-bold text-on-surface">¿Eliminar del historial?</h3>
+    <p class="text-body-md font-body-md text-on-surface-variant mt-1">
+      Vas a remover la materia <span id="delete-course-name" class="font-bold text-on-surface"></span> del Semestre <span id="delete-semester" class="font-bold text-on-surface"></span>.
+    </p>
+    <div class="mt-6 flex items-center justify-end gap-3">
+      <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 rounded-xl text-label-md font-label-md text-on-surface-variant hover:text-on-surface">
+        Cancelar
+      </button>
+      <form id="form-delete-record" method="POST" action="{% url 'student:historial_delete' %}">
+        {% csrf_token %}
+        <input type="hidden" name="record_id" id="delete-record-id" value="">
+        <button type="submit" class="px-5 py-2.5 bg-rose-600 text-white hover:bg-rose-700 rounded-xl text-label-md font-label-md font-semibold shadow-sm transition-colors">
+          Sí, eliminar
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================================================= -->
+<!-- MODAL 4: CONFIRMACIÓN LIMPIAR TODO EL HISTORIAL                           -->
+<!-- ========================================================================= -->
+<div id="modal-clear-all" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+  <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-2xl max-w-lg w-full overflow-hidden p-6 animate-in fade-in zoom-in-95 duration-200">
+    <div class="flex items-start gap-4 mb-4">
+      <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-[28px]">delete_sweep</span>
+      </div>
+      <div class="flex-1">
+        <h3 class="text-headline-sm font-headline-sm font-bold text-on-surface">¿Limpiar todo el historial?</h3>
+        <p class="text-label-sm font-label-sm text-rose-600 font-semibold mt-0.5">Esta acción es irreversible y eliminará todos tus registros</p>
+      </div>
+      <button type="button" onclick="closeClearAllModal()" class="text-outline hover:text-on-surface p-1 rounded-lg">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <div class="space-y-3.5 text-body-md font-body-md text-on-surface-variant">
+      <p>
+        Estás a punto de vaciar <strong>todas las asignaturas y calificaciones</strong> registradas hasta la fecha en tu perfil.
+      </p>
+
+      <div class="bg-rose-50 border border-rose-200 rounded-xl p-3.5 text-label-sm font-label-sm text-rose-900 flex items-start gap-2.5">
+        <span class="material-symbols-outlined text-[20px] text-rose-600 shrink-0 mt-0.5">warning</span>
+        <div>
+          <span class="font-semibold block text-rose-800">Efectos inmediatos:</span>
+          <span class="block mt-0.5">Tu promedio acumulado, créditos aprobados y progreso del plan volverán a cero. Las recomendaciones y rutas proyectadas se recalculan de inmediato.</span>
+        </div>
+      </div>
+
+      <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/50 flex items-center justify-between text-label-sm font-label-sm">
+        <span class="text-on-surface-variant">¿Solo deseas limpiar un semestre?</span>
+        <button type="button"
+                onclick="closeClearAllModal(); openClearSemesterModal();"
+                class="text-secondary hover:underline font-semibold inline-flex items-center gap-1">
+          <span>Limpiar semestre a semestre</span>
+          <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="mt-6 flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
+      <button type="button"
+              onclick="closeClearAllModal()"
+              class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-label-md font-label-md font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors">
+        Cancelar
+      </button>
+      <form id="form-clear-all" method="POST" action="{% url 'student:historial_clear_all' %}" class="w-full sm:w-auto" onsubmit="submitClearAll(event)">
+        {% csrf_token %}
+        <button type="submit"
+                id="btn-confirm-clear-all"
+                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 rounded-xl text-label-md font-label-md font-semibold shadow-sm transition-colors">
+          <span class="material-symbols-outlined text-[18px]">delete_forever</span>
+          <span>Sí, limpiar todo</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================================================= -->
+<!-- MODAL 5: CONFIRMACIÓN LIMPIAR SEMESTRE ESPECÍFICO                         -->
+<!-- ========================================================================= -->
+<div id="modal-clear-semester" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+  <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-2xl max-w-lg w-full overflow-hidden p-6 animate-in fade-in zoom-in-95 duration-200">
+    <div class="flex items-start gap-4 mb-4">
+      <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-[28px]">event_busy</span>
+      </div>
+      <div class="flex-1">
+        <h3 class="text-headline-sm font-headline-sm font-bold text-on-surface">
+          Limpiar <span id="clear-sem-title-text">Semestre</span>
+        </h3>
+        <p class="text-label-sm font-label-sm text-rose-600 font-semibold mt-0.5">Eliminación selectiva por período</p>
+      </div>
+      <button type="button" onclick="closeClearSemesterModal()" class="text-outline hover:text-on-surface p-1 rounded-lg">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <form id="form-clear-semester" method="POST" action="{% url 'student:historial_clear_semester' %}" onsubmit="submitClearSemester(event)">
+      {% csrf_token %}
+      <div class="space-y-4 text-body-md font-body-md text-on-surface-variant">
+        <p id="clear-semester-desc-text">
+          Se eliminarán todas las asignaturas y calificaciones registradas en este período. Las materias volverán a figurar como pendientes en tu pensum.
+        </p>
+
+        <!-- Selector de Semestre -->
+        <div>
+          <label for="clear-semester-select" class="block text-label-md font-label-md font-semibold text-on-surface mb-1.5">
+            Selecciona el Semestre a vaciar:
+          </label>
+          <select name="semester"
+                  id="clear-semester-select"
+                  onchange="updateClearSemesterModalInfo(this.value)"
+                  class="w-full bg-surface-container-low border border-outline-variant/70 rounded-xl px-3.5 py-2.5 text-body-md font-body-md font-bold text-secondary outline-none focus:ring-2 focus:ring-secondary/40">
+            {% for s in semesters_range %}
+              <option value="{{ s }}">Semestre {{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div id="clear-semester-summary-box" class="bg-rose-50 border border-rose-200 rounded-xl p-3.5 text-label-sm font-label-sm text-rose-900 flex items-start gap-2.5">
+          <span class="material-symbols-outlined text-[18px] text-rose-600 shrink-0 mt-0.5">info</span>
+          <span id="clear-semester-summary-msg" class="leading-relaxed">
+            Se eliminarán las asignaturas registradas en este semestre.
+          </span>
+        </div>
+      </div>
+
+      <div class="mt-6 flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
+        <button type="button"
+                onclick="closeClearSemesterModal()"
+                class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-label-md font-label-md font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors">
+          Cancelar
+        </button>
+        <button type="submit"
+                id="btn-confirm-clear-semester"
+                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 rounded-xl text-label-md font-label-md font-semibold shadow-sm transition-colors">
+          <span class="material-symbols-outlined text-[18px]">delete_sweep</span>
+          <span id="btn-confirm-clear-sem-text">Limpiar Semestre</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Toast notification container -->
+<div id="historial-toast" class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+
+<script>
+  // Datos precargados del programa organizados por semestre
+  const rawCoursesBySemester = {{ courses_by_semester_json|safe }};
+  const allProgramCourses = {{ all_program_courses_json|safe|default:'[]' }};
+  const studentRecords = {{ student_records_json|safe|default:'[]' }};
+  const currentStudentSemester = {{ profile.current_semester|default:1 }};
+  const maxAllowedSemester = {{ max_allowed_semester|default:1 }};
+  const mandatoryCourseIds = new Set({{ mandatory_course_ids|safe|default:'[]' }});
+
+  // Estado del Asistente de Carga Rápida
+  let currentBulkSemester = maxAllowedSemester || 1;
+  const extraCoursesInBulk = new Set(); // IDs de cursos añadidos manualmente a este semestre
+  const manuallyRemovedCourseIds = new Set(); // IDs de cursos removidos manualmente
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Toast helper (reemplaza alert() nativo)
+  // ─────────────────────────────────────────────────────────────────────────────
+  function showToast(message, type = 'error') {
+    const container = document.getElementById('historial-toast');
+    const colors = { error: 'bg-rose-700', success: 'bg-emerald-700', warning: 'bg-amber-600' };
+    const icons  = { error: 'cancel', success: 'check_circle', warning: 'warning' };
+    const toast  = document.createElement('div');
+    toast.className = `pointer-events-auto flex items-start gap-3 px-4 py-3.5 rounded-xl shadow-xl max-w-sm text-white text-label-md font-label-md ${colors[type] || colors.error}`;
+    toast.innerHTML = `
+      <span class="material-symbols-outlined text-[20px] shrink-0 mt-0.5">${icons[type] || 'cancel'}</span>
+      <span class="flex-1 leading-snug">${message}</span>
+      <button onclick="this.parentElement.remove()" class="shrink-0 opacity-70 hover:opacity-100 transition-opacity">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.transition = 'opacity 0.4s';
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 400);
+    }, 5000);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 1. Alternar vistas: Por Semestres vs Plan Completo
+  // ─────────────────────────────────────────────────────────────────────────────
+  function switchHistorialView(mode) {
+    const semContainer = document.getElementById('view-semesters-container');
+    const allContainer = document.getElementById('view-all-container');
+    const btnSem = document.getElementById('btn-view-semesters');
+    const btnAll = document.getElementById('btn-view-all');
+
+    if (mode === 'semesters') {
+      semContainer.classList.remove('hidden');
+      allContainer.classList.add('hidden');
+      btnSem.className = "inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-lowest text-secondary shadow-xs text-label-md font-label-md font-semibold transition-all";
+      btnAll.className = "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-on-surface-variant hover:text-on-surface text-label-md font-label-md font-medium transition-all";
+    } else {
+      semContainer.classList.add('hidden');
+      allContainer.classList.remove('hidden');
+      btnAll.className = "inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-lowest text-secondary shadow-xs text-label-md font-label-md font-semibold transition-all";
+      btnSem.className = "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-on-surface-variant hover:text-on-surface text-label-md font-label-md font-medium transition-all";
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 2. Filtro en vivo de tablas (Búsqueda y Estado)
+  // ─────────────────────────────────────────────────────────────────────────────
+  function filterHistorialTables() {
+    const query = document.getElementById('historial-search').value.toLowerCase().trim();
+    const statusFilter = document.getElementById('historial-status-filter').value;
+    const rows = document.querySelectorAll('.course-row');
+
+    rows.forEach(row => {
+      const code = row.getAttribute('data-code') || '';
+      const name = row.getAttribute('data-name') || '';
+      const status = row.getAttribute('data-status') || '';
+
+      const matchesQuery = query === '' || code.includes(query) || name.includes(query);
+      const matchesStatus = statusFilter === 'ALL' || status === statusFilter;
+
+      if (matchesQuery && matchesStatus) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    document.querySelectorAll('.semester-block').forEach(block => {
+      const visibleRows = block.querySelectorAll('.course-row:not([style*="display: none"])');
+      if (visibleRows.length === 0 && (query !== '' || statusFilter !== 'ALL')) {
+        block.style.display = 'none';
+      } else {
+        block.style.display = '';
+      }
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 3. Motor Inteligente de Prerrequisitos y Carga Rápida
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /** IDs de materias aprobadas en cualquier semestre (sin importar cuál) */
+  function getPassedCourseIdsInAny() {
+    const passed = new Set();
+    studentRecords.forEach(r => {
+      if (r.status === 'PASSED') passed.add(r.course_id);
+    });
+    return passed;
+  }
+
+  /** IDs de materias aprobadas en semestres ESTRICTAMENTE anteriores a `semester` */
+  function getPassedCourseIdsBefore(semester) {
+    const passed = new Set();
+    studentRecords.forEach(r => {
+      if (r.semester_taken < semester && r.status === 'PASSED') {
+        passed.add(r.course_id);
+      }
+    });
+    return passed;
+  }
+
+  function getEligibleCoursesForSemester(semester) {
+    semester = parseInt(semester);
+    const passedBefore = getPassedCourseIdsBefore(semester);
+    const passedAny   = getPassedCourseIdsInAny();
+
+    return allProgramCourses.filter(course => {
+      // 1. Si ya la aprobó en cualquier semestre, ya no necesita cursarla
+      if (passedAny.has(course.id)) return false;
+
+      // 2. Si tiene 3 reprobaciones en semestres anteriores, no puede registrarla
+      const failsBefore = studentRecords.filter(r => r.course_id === course.id && r.semester_taken < semester && r.status === 'FAILED').length;
+      if (failsBefore >= 3) return false;
+
+      // 3. Validar si todos sus prerrequisitos fueron aprobados en semestres anteriores
+      const prereqs = course.prerequisites || [];
+      const allMet = prereqs.every(p => passedBefore.has(p.id));
+      return allMet;
+    });
+  }
+
+  function openBulkRegisterModal(defaultSemester) {
+    const modal = document.getElementById('modal-bulk-register');
+    const select = document.getElementById('bulk-semester-select');
+    currentBulkSemester = parseInt(defaultSemester || maxAllowedSemester || 1);
+    if (select) select.value = currentBulkSemester;
+    extraCoursesInBulk.clear();
+    manuallyRemovedCourseIds.clear();
+    renderBulkSemesterCourses(currentBulkSemester);
+    renderEligibleCoursesSelector(currentBulkSemester);
+    modal.classList.remove('hidden');
+  }
+
+  function closeBulkRegisterModal() {
+    document.getElementById('modal-bulk-register').classList.add('hidden');
+  }
+
+  function onBulkSemesterChange(semesterVal) {
+    currentBulkSemester = parseInt(semesterVal);
+    extraCoursesInBulk.clear();
+    manuallyRemovedCourseIds.clear();
+    renderBulkSemesterCourses(currentBulkSemester);
+    renderEligibleCoursesSelector(currentBulkSemester);
+  }
+
+  function toggleAddEligiblePanel() {
+    const panel = document.getElementById('panel-add-eligible');
+    if (panel) panel.classList.toggle('hidden');
+  }
+
+  function renderEligibleCoursesSelector(semester) {
+    const select = document.getElementById('select-eligible-course');
+    if (!select) return;
+    select.innerHTML = '';
+
+    const eligible = getEligibleCoursesForSemester(semester);
+    // Excluir materias que ya estén visibles en la tabla
+    const currentTableCourseIds = new Set();
+    document.querySelectorAll('#bulk-courses-tbody tr').forEach(r => {
+      const cid = parseInt(r.getAttribute('data-course-id'));
+      if (cid) currentTableCourseIds.add(cid);
+    });
+
+    const candidateCourses = eligible.filter(c => !currentTableCourseIds.has(c.id));
+
+    if (candidateCourses.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = '-- No hay más materias elegibles para este semestre --';
+      select.appendChild(opt);
+      select.disabled = true;
+      return;
+    }
+
+    select.disabled = false;
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = `-- Selecciona una materia elegible (${candidateCourses.length} disponibles) --`;
+    select.appendChild(defaultOpt);
+
+    // Separar en materias atrasadas / adelantadas
+    candidateCourses.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+
+    candidateCourses.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      const typeLabel = c.level < semester ? `Atrasada (Nivel ${c.level})` : (c.level > semester ? `Adelantada (Nivel ${c.level})` : `Nivel ${c.level}`);
+      const prereqInfo = (c.prerequisites && c.prerequisites.length > 0) ? ' • Prerrequisitos cumplidos ✓' : ' • Sin prerrequisitos';
+      opt.textContent = `[${typeLabel}] ${c.code}: ${c.name} (${c.credits} cr)${prereqInfo}`;
+      select.appendChild(opt);
+    });
+  }
+
+  function addSelectedEligibleCourse() {
+    const select = document.getElementById('select-eligible-course');
+    if (!select || !select.value) {
+      showToast('Por favor selecciona una materia de la lista.', 'warning');
+      return;
+    }
+    const courseId = parseInt(select.value);
+    extraCoursesInBulk.add(courseId);
+    manuallyRemovedCourseIds.delete(courseId);
+
+    renderBulkSemesterCourses(currentBulkSemester, true);
+    renderEligibleCoursesSelector(currentBulkSemester);
+
+    const addedCourse = allProgramCourses.find(c => c.id === courseId);
+    showToast(`Asignatura "${addedCourse ? addedCourse.name : ''}" agregada al Semestre ${currentBulkSemester}.`, 'success');
+  }
+
+  function removeBulkCourseRow(courseId) {
+    extraCoursesInBulk.delete(courseId);
+    manuallyRemovedCourseIds.add(courseId);
+    renderBulkSemesterCourses(currentBulkSemester, true);
+    renderEligibleCoursesSelector(currentBulkSemester);
+  }
+
+  function renderBulkSemesterCourses(semester, preserveValues = false) {
+    const tbody = document.getElementById('bulk-courses-tbody');
+    const emptyMsg = document.getElementById('bulk-empty-message');
+    semester = parseInt(semester);
+
+    // Capturar valores ingresados si se debe preservar
+    const currentValues = {};
+    if (preserveValues) {
+      document.querySelectorAll('#bulk-courses-tbody tr').forEach(r => {
+        const cid = parseInt(r.getAttribute('data-course-id'));
+        const st = r.querySelector('.bulk-status-input')?.value;
+        const gr = r.querySelector('.bulk-grade-input')?.value;
+        if (cid) currentValues[cid] = { status: st, grade: gr };
+      });
+    }
+
+    tbody.innerHTML = '';
+
+    // 1. Materias que ya tiene registradas en este semestre específico
+    const existingInSem = studentRecords.filter(r => r.semester_taken === semester);
+    const existingMap = {};
+    existingInSem.forEach(r => existingMap[r.course_id] = r);
+
+    // Prerrequisitos: materias aprobadas ANTES de este semestre
+    const passedBefore = getPassedCourseIdsBefore(semester);
+    // Materias aprobadas en CUALQUIER semestre (para detectar duplicados)
+    const passedAny = getPassedCourseIdsInAny();
+
+    // 2. Materias del pensum regular para este nivel
+    //    Excluir las ya aprobadas en otro semestre (no las del semestre actual que están en BD)
+    const regularCourses = (rawCoursesBySemester[semester] || []).filter(c => {
+      if (manuallyRemovedCourseIds.has(c.id)) return false;
+      // Si ya está aprobada en otro semestre distinto al actual → excluir
+      const passedInOtherSem = studentRecords.some(r =>
+        r.course_id === c.id && r.status === 'PASSED' && r.semester_taken !== semester
+      );
+      return !passedInOtherSem;
+    });
+
+    // 3. IDs consolidados de materias a renderizar
+    const coursesToRender = [];
+    const addedIds = new Set();
+
+    // Primero: materias regulares del nivel (con detección de prerrequisitos no cumplidos)
+    regularCourses.forEach(c => {
+      addedIds.add(c.id);
+      const prereqs = (c.prerequisites || []);
+      const unmetPrereqs = prereqs.filter(p => !passedBefore.has(p.id));
+      coursesToRender.push({
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        credits: c.credits,
+        level: c.level,
+        is_delayed: c.is_delayed,
+        is_mandatory: mandatoryCourseIds.has(c.id),
+        is_manual_extra: false,
+        existing_record: existingMap[c.id] || null,
+        unmet_prereqs: unmetPrereqs   // lista de {id, code, name} sin cumplir
+      });
+    });
+
+    // Segundo: materias que ya estaban guardadas en BD en este semestre pero que son de otro nivel
+    existingInSem.forEach(r => {
+      if (!addedIds.has(r.course_id) && !manuallyRemovedCourseIds.has(r.course_id)) {
+        addedIds.add(r.course_id);
+        const cObj = allProgramCourses.find(c => c.id === r.course_id);
+        if (cObj) {
+          const prereqs = (cObj.prerequisites || []);
+          const unmetPrereqs = prereqs.filter(p => !passedBefore.has(p.id));
+          coursesToRender.push({
+            id: cObj.id,
+            code: cObj.code,
+            name: cObj.name,
+            credits: cObj.credits,
+            level: cObj.level,
+            is_delayed: cObj.level < semester,
+            is_mandatory: mandatoryCourseIds.has(cObj.id),
+            is_manual_extra: cObj.level !== semester,
+            existing_record: r,
+            unmet_prereqs: unmetPrereqs
+          });
+        }
+      }
+    });
+
+    // Tercero: materias añadidas manualmente a través del selector de elegibles
+    extraCoursesInBulk.forEach(cid => {
+      if (!addedIds.has(cid)) {
+        addedIds.add(cid);
+        const cObj = allProgramCourses.find(c => c.id === cid);
+        if (cObj) {
+          const prereqs = (cObj.prerequisites || []);
+          const unmetPrereqs = prereqs.filter(p => !passedBefore.has(p.id));
+          coursesToRender.push({
+            id: cObj.id,
+            code: cObj.code,
+            name: cObj.name,
+            credits: cObj.credits,
+            level: cObj.level,
+            is_delayed: cObj.level < semester,
+            is_mandatory: mandatoryCourseIds.has(cObj.id),
+            is_manual_extra: true,
+            existing_record: existingMap[cid] || null,
+            unmet_prereqs: unmetPrereqs
+          });
+        }
+      }
+    });
+
+    if (coursesToRender.length === 0) {
+      emptyMsg.classList.remove('hidden');
+      updateBulkSummaryCount();
+      return;
+    }
+    emptyMsg.classList.add('hidden');
+
+    // Ordenar: primero obligatorias y atrasadas, luego por nivel y nombre
+    coursesToRender.sort((a, b) => {
+      if (a.is_mandatory !== b.is_mandatory) return b.is_mandatory ? 1 : -1;
+      if (a.level !== b.level) return a.level - b.level;
+      return a.name.localeCompare(b.name);
+    });
+
+    coursesToRender.forEach(c => {
+      const isBlocked = (c.unmet_prereqs && c.unmet_prereqs.length > 0);
+      const tr = document.createElement('tr');
+      const isMandatory = c.is_mandatory;
+      const isDelayed = c.is_delayed;
+      const isManualExtra = c.is_manual_extra;
+
+      let rowBg = '';
+      if (isBlocked)       rowBg = 'bg-slate-100/80';
+      else if (isMandatory) rowBg = 'bg-rose-50/70';
+      else if (isDelayed)  rowBg = 'bg-amber-50/50';
+      else if (isManualExtra) rowBg = 'bg-sky-50/40';
+
+      tr.className = `hover:bg-surface-container-low/50 transition-colors bulk-course-item ${rowBg}`;
+      tr.setAttribute('data-course-id', c.id);
+      tr.setAttribute('data-credits', c.credits || 0);
+      if (isBlocked) tr.setAttribute('data-blocked', 'true');
+
+      // Estado inicial
+      let initialStatus = 'PASSED';
+      let initialGrade = '4.0';
+
+      if (isBlocked) {
+        initialStatus = 'SKIP'; // forzar omisión
+        initialGrade = '';
+      } else if (currentValues[c.id]) {
+        initialStatus = currentValues[c.id].status || 'PASSED';
+        initialGrade = currentValues[c.id].grade;
+      } else if (c.existing_record) {
+        initialStatus = c.existing_record.status || 'PASSED';
+        initialGrade = c.existing_record.grade !== null ? c.existing_record.grade : (initialStatus === 'PASSED' ? 4.0 : '');
+      }
+
+      // Badges identificadores
+      let badgesHtml = '';
+      if (isBlocked) {
+        const missingNames = c.unmet_prereqs.map(p => p.name || p.code).join(', ');
+        badgesHtml += `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-700 border border-slate-300">
+          <span class="material-symbols-outlined text-[12px]">lock</span>BLOQUEADA
+        </span>`;
+        badgesHtml += `<span class="text-[10px] text-slate-500 font-normal">Requiere: ${missingNames}</span>`;
+      } else if (isMandatory) {
+        badgesHtml += `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">OBLIGATORIA</span>`;
+      } else if (isDelayed) {
+        badgesHtml += `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">ATRASADA (Nivel ${c.level})</span>`;
+      } else if (c.level > semester) {
+        badgesHtml += `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300">ADELANTADA (Nivel ${c.level})</span>`;
+      } else if (isManualExtra) {
+        badgesHtml += `<span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-surface-container text-secondary border border-outline-variant/60">Añadida (Nivel ${c.level})</span>`;
+      }
+
+      // Para filas bloqueadas: select forzado a SKIP deshabilitado
+      const statusCellHtml = isBlocked
+        ? `<select class="bulk-status-input w-full bg-slate-100 border border-slate-300 rounded-xl px-3 py-2 text-label-md font-label-md text-slate-400 outline-none cursor-not-allowed" disabled>
+             <option value="SKIP" selected>🔒 Bloqueada por prerrequisito</option>
+           </select>`
+        : `<select class="bulk-status-input w-full bg-surface-container-low border border-outline-variant/70 rounded-xl px-3 py-2 text-label-md font-label-md text-on-surface outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/30 transition-all"
+                   onchange="handleBulkStatusChange(this, ${c.id})">
+             <option value="PASSED" ${initialStatus === 'PASSED' ? 'selected' : ''}>Aprobada</option>
+             <option value="IN_PROGRESS" ${initialStatus === 'IN_PROGRESS' ? 'selected' : ''}>En curso</option>
+             <option value="FAILED" ${initialStatus === 'FAILED' ? 'selected' : ''}>Reprobada</option>
+             ${isMandatory
+               ? `<option value="SKIP" disabled>Omitir (es obligatoria)</option>`
+               : `<option value="SKIP">Omitir de este semestre</option>`}
+           </select>`;
+
+      const gradeCellHtml = isBlocked
+        ? `<input type="number" disabled class="bulk-grade-input w-24 mx-auto bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-center text-label-md font-code-sm text-slate-300 outline-none cursor-not-allowed"/>`
+        : `<input type="number" step="0.1" min="0.0" max="5.0"
+                 value="${initialGrade !== '' && initialGrade !== null && initialGrade !== undefined ? initialGrade : ''}"
+                 placeholder="Ej. 4.0"
+                 ${initialStatus === 'IN_PROGRESS' || initialStatus === 'SKIP' ? 'disabled' : ''}
+                 class="bulk-grade-input w-24 mx-auto bg-surface-container-low border border-outline-variant/70 rounded-xl px-3 py-2 text-center text-label-md font-code-sm font-bold text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary/30 outline-none disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                 oninput="handleBulkGradeInput(this)"/>`;
+
+      // Botón para remover de la tabla si fue agregada de otro semestre
+      const removeBtnHtml = isManualExtra
+        ? `<button type="button" onclick="removeBulkCourseRow(${c.id})" class="p-1.5 text-on-surface-variant hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Quitar de este semestre">
+             <span class="material-symbols-outlined text-[18px]">close</span>
+           </button>`
+        : `<span class="text-outline text-label-sm">—</span>`;
+
+      tr.innerHTML = `
+        <td class="px-4 py-3.5">
+          <div class="font-bold ${isBlocked ? 'text-slate-400' : 'text-on-surface'} flex items-center flex-wrap gap-1.5">
+            <span>${c.name}</span>
+            ${badgesHtml}
+          </div>
+          <div class="text-label-sm font-label-sm font-code-sm ${isBlocked ? 'text-slate-400' : 'text-secondary'} mt-0.5 flex items-center gap-2">
+            <span>${c.code}</span>
+            <span>&bull;</span>
+            <span class="${isBlocked ? 'text-slate-400' : 'text-on-surface-variant'} font-normal">Pensum: Semestre ${c.level}</span>
+          </div>
+        </td>
+        <td class="px-3 py-3.5 text-center">
+          <span class="inline-block px-2.5 py-1 rounded-lg bg-surface-container text-label-sm font-code-sm font-bold ${isBlocked ? 'text-slate-400' : 'text-on-surface'}">
+            ${c.credits} cr.
+          </span>
+        </td>
+        <td class="px-3 py-3.5">
+          ${statusCellHtml}
+        </td>
+        <td class="px-3 py-3.5 text-center">
+          ${gradeCellHtml}
+        </td>
+        <td class="px-3 py-3.5 text-center">
+          ${removeBtnHtml}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    updateBulkSummaryCount();
+  }
+
+  function handleBulkStatusChange(selectElem, courseId) {
+    const row = selectElem.closest('tr');
+    const gradeInput = row.querySelector('.bulk-grade-input');
+    const val = selectElem.value;
+
+    if (val === 'IN_PROGRESS' || val === 'SKIP') {
+      gradeInput.disabled = true;
+      gradeInput.value = '';
+    } else {
+      gradeInput.disabled = false;
+      if (!gradeInput.value) {
+        gradeInput.value = val === 'PASSED' ? '4.0' : '2.0';
+      }
+    }
+    updateBulkSummaryCount();
+  }
+
+  function handleBulkGradeInput(inputElem) {
+    const row = inputElem.closest('tr');
+    const statusSelect = row.querySelector('.bulk-status-input');
+    const val = parseFloat(inputElem.value);
+
+    if (!isNaN(val)) {
+      if (val >= 3.0) {
+        statusSelect.value = 'PASSED';
+      } else {
+        statusSelect.value = 'FAILED';
+      }
+    }
+  }
+
+  function batchSetStatusAndGrade(status, grade) {
+    const rows = document.querySelectorAll('#bulk-courses-tbody tr');
+    rows.forEach(row => {
+      // Saltar filas bloqueadas por prerrequisito
+      if (row.getAttribute('data-blocked') === 'true') return;
+
+      const statusSelect = row.querySelector('.bulk-status-input');
+      const gradeInput = row.querySelector('.bulk-grade-input');
+      if (!statusSelect || statusSelect.disabled) return;
+
+      statusSelect.value = status;
+      if (status === 'IN_PROGRESS' || status === 'SKIP') {
+        gradeInput.disabled = true;
+        gradeInput.value = '';
+      } else {
+        gradeInput.disabled = false;
+        gradeInput.value = grade !== null ? grade.toFixed(1) : '';
+      }
+    });
+    updateBulkSummaryCount();
+  }
+
+  function batchResetAll() {
+    const rows = document.querySelectorAll('#bulk-courses-tbody tr');
+    rows.forEach(row => {
+      // Saltar filas bloqueadas por prerrequisito
+      if (row.getAttribute('data-blocked') === 'true') return;
+      const statusSelect = row.querySelector('.bulk-status-input');
+      const gradeInput = row.querySelector('.bulk-grade-input');
+      if (!statusSelect || statusSelect.disabled) return;
+      statusSelect.value = 'SKIP';
+      gradeInput.disabled = true;
+      gradeInput.value = '';
+    });
+    updateBulkSummaryCount();
+  }
+
+  function updateBulkSummaryCount() {
+    const rows = document.querySelectorAll('#bulk-courses-tbody tr');
+    let active = 0;
+    let blocked = 0;
+    let totalCredits = 0;
+    rows.forEach(r => {
+      if (r.getAttribute('data-blocked') === 'true') { blocked++; return; }
+      const stEl = r.querySelector('.bulk-status-input');
+      const st = stEl ? stEl.value : 'SKIP';
+      if (st !== 'SKIP') {
+        active++;
+        totalCredits += parseFloat(r.getAttribute('data-credits') || 0);
+      }
+    });
+    const overLimit = totalCredits > 18;
+    const el = document.getElementById('bulk-summary-count');
+    el.innerHTML = `${active} materias para registrar`
+      + (totalCredits > 0 ? ` &bull; <span class="font-semibold ${overLimit ? 'text-rose-600' : 'text-on-surface'}">${totalCredits} créd.${overLimit ? ' ⚠️ Excede 18!' : ''}</span>` : '')
+      + (blocked > 0 ? ` &bull; <span class="text-slate-500 font-medium">🔒 ${blocked} bloqueada(s)</span>` : '');
+  }
+
+  // Envío AJAX masivo
+  async function submitBulkSave() {
+    const semester = parseInt(document.getElementById('bulk-semester-select').value);
+    const rows = document.querySelectorAll('#bulk-courses-tbody tr');
+    const records = [];
+
+    rows.forEach(row => {
+      const courseId = row.getAttribute('data-course-id');
+      const status = row.querySelector('.bulk-status-input').value;
+      const gradeVal = row.querySelector('.bulk-grade-input').value;
+
+      if (status !== 'SKIP') {
+        records.push({
+          course_id: parseInt(courseId),
+          status: status,
+          grade: gradeVal !== '' ? parseFloat(gradeVal) : null
+        });
+      }
+    });
+
+    if (records.length === 0) {
+      showToast('No seleccionaste materias para registrar en este semestre.', 'warning');
+      return;
+    }
+
+    const saveBtn = document.getElementById('btn-save-bulk');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span><span>Guardando...</span>`;
+
+    try {
+      const csrfToken = getCookie('csrftoken');
+      const response = await fetch("{% url 'student:historial_bulk_save' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ semester, records })
+      });
+
+      const res = await response.json();
+      if (res.success) {
+        showToast(res.message || 'Semestre guardado correctamente.', 'success');
+        setTimeout(() => window.location.reload(), 900);
+      } else {
+        showToast(res.error || 'Ocurrió un error inesperado.', 'error');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<span class="material-symbols-outlined text-[18px]">save</span><span>Guardar Semestre</span>`;
+      }
+    } catch (err) {
+      showToast('Error de conexión: ' + err.message, 'error');
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = `<span class="material-symbols-outlined text-[18px]">save</span><span>Guardar Semestre</span>`;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 4. Modal Individual
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Valida client-side si el curso/semestre elegidos son válidos.
+   * Muestra toast con error si no lo son.
+   * Retorna true si todo está OK, false si hay un problema.
+   */
+  function validateSingleRecordSelection(courseId, semester, recordId) {
+    if (!courseId || !semester) return true; // dejar que el servidor valide
+    courseId = parseInt(courseId);
+    semester = parseInt(semester);
+
+    const passedAny = getPassedCourseIdsInAny();
+    const passedBefore = getPassedCourseIdsBefore(semester);
+
+    // 1. ¿Ya aprobada en otro semestre?
+    const passedElsewhere = studentRecords.find(r =>
+      r.course_id === courseId && r.status === 'PASSED' && r.semester_taken !== semester
+    );
+    if (passedElsewhere && !recordId) {
+      const cObj = allProgramCourses.find(c => c.id === courseId);
+      showToast(`"${cObj ? cObj.name : 'Esta materia'}" ya fue aprobada en el Semestre ${passedElsewhere.semester_taken}. No puedes volver a registrarla.`, 'error');
+      return false;
+    }
+
+    // 2. ¿Prerrequisitos cumplidos?
+    const cObj = allProgramCourses.find(c => c.id === courseId);
+    if (cObj) {
+      const prereqs = cObj.prerequisites || [];
+      const unmet = prereqs.filter(p => !passedBefore.has(p.id));
+      if (unmet.length > 0 && !recordId) {
+        const missingNames = unmet.map(p => p.name || p.code).join(', ');
+        showToast(`No puedes registrar "${cObj.name}" en el Semestre ${semester}: faltan los prerrequisitos: ${missingNames}.`, 'error');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function openSingleRecordModal(data) {
+    const modal = document.getElementById('modal-single-record');
+    const form  = document.getElementById('form-single-record');
+    form.reset();
+
+    if (data) {
+      document.getElementById('single-modal-title').innerText = data.record_id ? 'Editar Calificación / Estado' : 'Registrar Asignatura';
+      document.getElementById('single-record-id').value  = data.record_id  || '';
+      document.getElementById('single-course-id').value  = data.course_id  || '';
+      // Respetar el máximo semestre permitido
+      const sem = Math.min(parseInt(data.semester_taken) || maxAllowedSemester, maxAllowedSemester);
+      document.getElementById('single-semester-taken').value = sem;
+      document.getElementById('single-status').value = data.status || 'PASSED';
+      document.getElementById('single-grade').value = data.grade || '';
+      onSingleStatusChange(data.status || 'PASSED');
+    } else {
+      document.getElementById('single-modal-title').innerText = "Registrar Asignatura";
+      document.getElementById('single-record-id').value = '';
+      document.getElementById('single-semester-taken').value = currentStudentSemester;
+      document.getElementById('single-status').value = 'PASSED';
+      document.getElementById('single-grade').value = '4.0';
+      onSingleStatusChange('PASSED');
+    }
+    modal.classList.remove('hidden');
+  }
+
+  /** Validación client-side al submit del modal individual */
+  function handleSingleRecordSubmit(event) {
+    const courseId  = document.getElementById('single-course-id').value;
+    const semester  = document.getElementById('single-semester-taken').value;
+    const recordId  = document.getElementById('single-record-id').value;
+    if (!validateSingleRecordSelection(courseId, semester, recordId)) {
+      event.preventDefault();
+      return false;
+    }
+    return true;
+  }
+
+  function closeSingleRecordModal() {
+    document.getElementById('modal-single-record').classList.add('hidden');
+  }
+
+  function onSingleStatusChange(status) {
+    const gradeContainer = document.getElementById('single-grade-container');
+    const gradeInput = document.getElementById('single-grade');
+    if (status === 'IN_PROGRESS') {
+      gradeContainer.classList.add('opacity-40');
+      gradeInput.disabled = true;
+      gradeInput.value = '';
+    } else {
+      gradeContainer.classList.remove('opacity-40');
+      gradeInput.disabled = false;
+      if (!gradeInput.value) {
+        gradeInput.value = status === 'PASSED' ? '4.0' : '2.0';
+      }
+    }
+  }
+
+  function onSingleGradeInput(val) {
+    const num = parseFloat(val);
+    const statusSelect = document.getElementById('single-status');
+    if (!isNaN(num)) {
+      statusSelect.value = num >= 3.0 ? 'PASSED' : 'FAILED';
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 5. Modal de Eliminación
+  // ─────────────────────────────────────────────────────────────────────────────
+  function confirmDeleteRecord(recordId, courseName, semester) {
+    document.getElementById('delete-record-id').value = recordId;
+    document.getElementById('delete-course-name').innerText = `"${courseName}"`;
+    document.getElementById('delete-semester').innerText = semester;
+    document.getElementById('modal-delete-confirm').classList.remove('hidden');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('modal-delete-confirm').classList.add('hidden');
+  }
+
+  function confirmAutofill(event) {
+    return confirm("¿Deseas autocompletar tu historial? Esto registrará materias simuladas como aprobadas hasta tu semestre actual.");
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 6. Modal Limpiar Todo el Historial
+  // ─────────────────────────────────────────────────────────────────────────────
+  function openClearAllModal() {
+    const modal = document.getElementById('modal-clear-all');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeClearAllModal() {
+    const modal = document.getElementById('modal-clear-all');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  async function submitClearAll(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btn-confirm-clear-all');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span><span>Limpiando...</span>`;
+    }
+
+    try {
+      const csrfToken = getCookie('csrftoken');
+      const response = await fetch("{% url 'student:historial_clear_all' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      const res = await response.json();
+      if (res.success) {
+        showToast(res.message || 'Historial limpiado correctamente.', 'success');
+        setTimeout(() => window.location.reload(), 700);
+      } else {
+        showToast(res.error || 'No se pudo limpiar el historial.', 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">delete_forever</span><span>Sí, limpiar todo</span>`;
+        }
+      }
+    } catch (err) {
+      // En caso de error de red, fallback a submit normal
+      document.getElementById('form-clear-all').submit();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 7. Modal Limpiar Semestre Específico
+  // ─────────────────────────────────────────────────────────────────────────────
+  const semesterRecordsCount = {
+    {% for sem in sorted_semesters %}
+      {{ sem.semester }}: {{ sem.records|length }},
+    {% endfor %}
+  };
+
+  function openClearSemesterModal(semesterNum, coursesCount) {
+    const modal = document.getElementById('modal-clear-semester');
+    const select = document.getElementById('clear-semester-select');
+    
+    // Si no se pasó un semestre, tomar el primer semestre que tenga registros o 1
+    if (semesterNum) {
+      if (select) select.value = semesterNum;
+    } else if (select) {
+      const registeredSems = Object.keys(semesterRecordsCount);
+      if (registeredSems.length > 0) {
+        select.value = registeredSems[0];
+      }
+    }
+
+    const currentSem = select ? select.value : (semesterNum || 1);
+    updateClearSemesterModalInfo(currentSem, coursesCount);
+
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeClearSemesterModal() {
+    const modal = document.getElementById('modal-clear-semester');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function updateClearSemesterModalInfo(semesterVal, explicitCount) {
+    const sem = parseInt(semesterVal);
+    const count = (explicitCount !== undefined && explicitCount !== null)
+      ? explicitCount
+      : (semesterRecordsCount[sem] || 0);
+
+    const titleText = document.getElementById('clear-sem-title-text');
+    const descText = document.getElementById('clear-semester-desc-text');
+    const summaryMsg = document.getElementById('clear-semester-summary-msg');
+    const btnText = document.getElementById('btn-confirm-clear-sem-text');
+
+    if (titleText) titleText.innerText = `Semestre ${sem}`;
+    if (btnText) btnText.innerText = `Limpiar Semestre ${sem}`;
+
+    if (count > 0) {
+      if (summaryMsg) {
+        summaryMsg.innerHTML = `Se eliminarán <strong>${count} asignatura(s)</strong> registradas en el <strong>Semestre ${sem}</strong>.`;
+      }
+      if (descText) {
+        descText.innerText = `Vas a vaciar las notas y materias del Semestre ${sem}. Esta acción no se puede deshacer.`;
+      }
+    } else {
+      if (summaryMsg) {
+        summaryMsg.innerHTML = `El <strong>Semestre ${sem}</strong> actualmente no registra materias en tu historial.`;
+      }
+      if (descText) {
+        descText.innerText = `No hay materias registradas en el Semestre ${sem}.`;
+      }
+    }
+  }
+
+  async function submitClearSemester(event) {
+    event.preventDefault();
+    const select = document.getElementById('clear-semester-select');
+    const semester = parseInt(select ? select.value : 0);
+    if (!semester) {
+      showToast('Selecciona un número de semestre válido.', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('btn-confirm-clear-semester');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span><span>Limpiando...</span>`;
+    }
+
+    try {
+      const csrfToken = getCookie('csrftoken');
+      const response = await fetch("{% url 'student:historial_clear_semester' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ semester: semester })
+      });
+      const res = await response.json();
+      if (res.success) {
+        showToast(res.message || `Semestre ${semester} limpiado correctamente.`, 'success');
+        setTimeout(() => window.location.reload(), 700);
+      } else {
+        showToast(res.error || 'No se pudo limpiar el semestre.', 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">delete_sweep</span><span>Limpiar Semestre</span>`;
+        }
+      }
+    } catch (err) {
+      // En caso de fallo de red, fallback al submit regular del formulario
+      document.getElementById('form-clear-semester').submit();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Helper CSRF Token
+  // ─────────────────────────────────────────────────────────────────────────────
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+{% endblock %}

@@ -1,8 +1,7 @@
 """
 EduPilot — Prompt para explicación de rutas académicas.
-
-Genera el par (system, user) que se envía a Mistral-7B.
-El modelo SOLO explica — la ruta ya fue calculada por Django.
+Genera instrucciones estructuradas para el modelo de IA.
+El modelo explica la trayectoria calculada objetivamente por el motor.
 """
 
 from __future__ import annotations
@@ -13,74 +12,72 @@ if TYPE_CHECKING:
     from apps.students.models import StudentProfile
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SYSTEM PROMPT — rol e instrucciones permanentes
-# ─────────────────────────────────────────────────────────────────────────────
-
 SYSTEM_PROMPT = """\
-Eres EduPilot-AI, un asesor académico empático y profesional.
-Tu única función es EXPLICAR rutas académicas que ya fueron calculadas \
-por el sistema. NUNCA calculas ni cambias la ruta.
+Eres EduPilot-AI, un consejero académico universitario especializado en planificación curricular y trayectorias formativas.
+Tu función es EXPLICAR detallada, empática y profesionalmente la ruta académica calculada por el motor algorítmico del sistema.
+NUNCA inventes notas, calificaciones, nombres de materias inexistentes ni alteres la secuencia calculada.
 
-Reglas estrictas:
-- Responde siempre en español.
-- Usa un tono cercano, claro y motivador.
-- Responde en exactamente 3 secciones con estos títulos exactos:
-  **Ventajas de esta ruta**
-  **Posibles riesgos**
-  **¿Para qué tipo de estudiante es ideal?**
-- Cada sección: máximo 2 oraciones.
-- No uses listas de bullets dentro de las secciones.
-- No repitas los datos técnicos que ya ve el estudiante en pantalla.
+Debes responder siempre en español y organizar tu análisis obligatoriamente en estas 7 secciones numeradas:
+
+1. **Resumen de la estrategia**: Explica brevemente el enfoque de esta alternativa y su ritmo de avance.
+2. **Explicación de la trayectoria**: Describe la progresión académica a mediano y largo plazo.
+3. **Análisis de los semestres**: Comenta la carga de créditos y materias en los ciclos iniciales e intermedios.
+4. **Materias críticas y dependencias**: Menciona las materias cuello de botella que desbloquean más asignaturas o requieren mayor atención.
+5. **Ventajas y desventajas**: Señala con objetividad los beneficios y los sacrificios de cursar a este ritmo.
+6. **Riesgos o restricciones**: Evalúa el margen ideal institucional de 10 semestres (indicando si la ruta está dentro del margen o si proyecta sobrepermanencia y sus causas), fatiga académica o prerrequisitos en serie.
+7. **Recomendación final**: Consejo personalizado de estudio para el estudiante según las métricas calculadas.
 """
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# USER PROMPT — datos dinámicos de la ruta
-# ─────────────────────────────────────────────────────────────────────────────
-
 def build_route_prompt(profile: 'StudentProfile', route: 'RouteResult') -> str:
-    """
-    Construye el mensaje del usuario con el contexto académico.
+    """Construye el prompt del usuario con el contexto curricular exhaustivo."""
+    # Desglose de semestres proyectados
+    semesters_detail = []
+    for s in route.semesters[:4]:  # Primeros 4 semestres para contexto claro
+        course_names = [f"{c.code} {c.name} ({c.credits} cr)" for c in s.courses]
+        semesters_detail.append(
+            f"  - Semestre {s.number} ({s.total_credits} cr, {len(s.courses)} materias): " + ", ".join(course_names)
+        )
+    if len(route.semesters) > 4:
+        semesters_detail.append(f"  - (... y {len(route.semesters) - 4} semestre(s) proyectado(s) adicionales).")
 
-    Args:
-        profile: StudentProfile del estudiante autenticado.
-        route:   RouteResult calculado por RouteGeneratorService.
+    semesters_str = "\n".join(semesters_detail) if semesters_detail else "  (Sin semestres proyectados)"
 
-    Returns:
-        str: Mensaje listo para enviarse como role='user'.
-    """
-    # Listar materias del primer semestre de la ruta (las más inmediatas)
-    first_sem_courses = []
-    if route.semesters:
-        first_sem_courses = [
-            f"{c.code} - {c.name} ({c.credits} créditos)"
-            for c in route.semesters[0].courses
-        ]
+    # Materias críticas
+    crit_str = "Ninguna identificada como cuello de botella inmediato."
+    if route.critical_courses:
+        crit_str = ", ".join(
+            f"{c['code']} {c['name']} (desbloquea {c['unlock_count']} materias{' - REPROBADA' if c.get('is_failed') else ''})"
+            for c in route.critical_courses[:4]
+        )
 
-    courses_str = (
-        "\n".join(f"  • {c}" for c in first_sem_courses)
-        if first_sem_courses
-        else "  (ninguna disponible)"
+    # Margen de 10 semestres
+    ideal_status = (
+        "DENTRO DEL MARGEN IDEAL (<= 10 semestres de carrera)."
+        if route.is_within_ideal_limit
+        else f"SUPERA EL MARGEN IDEAL por {route.over_limit_semesters} semestre(s). Factores: {'; '.join(route.over_limit_factors)}"
     )
 
     return f"""\
-Analiza la siguiente ruta académica y genera tu explicación.
-
 DATOS DEL ESTUDIANTE:
-  Programa:         {profile.program}
-  Semestre actual:  {profile.current_semester}
-  Materias aprobadas hasta ahora: {route.passed_count}
-  Materias pendientes en total:   {route.pending_count}
+- Programa Académico: {profile.program.name if profile.program else 'No asignado'}
+- Semestre actual en curso: Semestre {profile.current_semester}
+- Materias aprobadas: {route.passed_count}
+- Materias actualmente en curso: {route.in_progress_count}
+- Materias reprobadas pendientes de aprobación: {route.failed_count}
+- Total materias pendientes por cursar: {route.pending_count}
 
-RUTA GENERADA ({route.strategy_label}):
-  Duración estimada:   {route.estimated_semesters} semestre(s)
-  Materias incluidas:  {route.total_courses}
-  Créditos totales:    {route.total_credits}
-  Dificultad:          {route.difficulty_label}
+RUTA GENERADA POR EL MOTOR:
+- Estrategia: {route.strategy_label} ({route.strategy})
+- Duración proyectada: {route.estimated_semesters} semestres
+- Total créditos a cursar: {route.total_credits} créditos
+- Total asignaturas incluidas: {route.total_courses}
+- Carga promedio por semestre: {route.average_credits_per_semester} créditos
+- Cumplimiento de margen institucional de 10 semestres: {ideal_status}
+- Asignaturas críticas con mayor cadena de desbloqueo: {crit_str}
 
-PRÓXIMAS MATERIAS (semestre 1 de la ruta):
-{courses_str}
+PROYECCIÓN POR SEMESTRES:
+{semesters_str}
 
-Genera tu explicación siguiendo exactamente el formato indicado.
+Por favor, genera la explicación completa organizada en las 7 secciones requeridas.
 """

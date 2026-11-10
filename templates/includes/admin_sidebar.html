@@ -1,0 +1,217 @@
+{# EduPilot — Sidebar Administrativo Funcional y Colapsable #}
+<aside id="admin-sidebar" class="fixed top-0 left-0 h-screen flex flex-col justify-between shrink-0 bg-primary-container text-surface-container-lowest border-r border-outline-variant/30 z-50 select-none shadow-xl md:shadow-none overflow-hidden">
+  
+  <!-- Parte Superior: Brand + Navegación -->
+  <div class="p-3.5 flex flex-col h-full justify-between overflow-y-auto overflow-x-hidden">
+    <div>
+      <!-- Brand & Controles de Cabecera -->
+      <div class="flex items-center justify-between px-1 py-1.5 mb-3.5 min-h-[44px]">
+        <!-- Logo y Nombre de la Plataforma -->
+        <a href="{% url 'admin_panel:dashboard' %}" class="flex items-center gap-3 group min-w-0" title="EduPilot Admin">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-secondary to-secondary-container flex items-center justify-center text-on-secondary shadow-md group-hover:scale-105 transition-transform shrink-0">
+            <span class="material-symbols-outlined text-[24px] text-surface-container-lowest" style="font-variation-settings: 'FILL' 1;">shield_person</span>
+          </div>
+          <div class="sidebar-text min-w-0">
+            <div class="text-headline-md font-bold text-surface-container-lowest tracking-tight leading-none truncate">EduPilot</div>
+            <div class="text-[10.5px] font-semibold text-secondary-container tracking-wider uppercase mt-1 truncate">Panel Admin</div>
+          </div>
+        </a>
+
+        <!-- Botón para colapsar en Desktop (Icon-only mode) -->
+        <button type="button"
+                onclick="toggleAdminSidebarCollapse()"
+                class="hidden md:inline-flex p-1.5 rounded-lg text-on-primary-container hover:text-surface-container-lowest hover:bg-surface-container-highest/20 transition-colors"
+                title="Colapsar o expandir menú lateral">
+          <span class="material-symbols-outlined text-[20px] sidebar-hide-collapsed">first_page</span>
+          <span class="material-symbols-outlined text-[20px] sidebar-show-collapsed hidden">last_page</span>
+        </button>
+
+        <!-- Botón cerrar en Móvil -->
+        <button type="button"
+                onclick="closeAdminMobileSidebar()"
+                class="md:hidden text-on-primary-container hover:text-surface-container-lowest p-1 rounded-lg hover:bg-surface-container-highest/20 transition-colors"
+                aria-label="Cerrar menú lateral">
+          <span class="material-symbols-outlined text-[22px]">close</span>
+        </button>
+      </div>
+
+      <!-- Badge de Rol (Oculto en modo colapsado) -->
+      <div class="sidebar-hide-collapsed mx-0.5 mb-4 px-3 py-1.5 rounded-lg bg-surface-container-highest/10 border border-outline-variant/20 flex items-center justify-between">
+        <span class="text-[11px] font-medium text-on-primary-container">Rol de acceso:</span>
+        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-surface-container-lowest tracking-wide uppercase">Admin</span>
+      </div>
+
+      <!-- Menú de Navegación -->
+      <nav class="space-y-1.5" aria-label="Navegación del Administrador">
+        
+        <!-- 1. Dashboard -->
+        <div class="sidebar-tooltip-container relative group">
+          <a href="{% url 'admin_panel:dashboard' %}"
+             class="sidebar-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                    {% if active_nav == 'dashboard' %}
+                      bg-secondary text-surface-container-lowest shadow-sm font-semibold
+                    {% else %}
+                      text-on-primary-container hover:text-surface-container-lowest hover:bg-surface-container-highest/15
+                    {% endif %}">
+            <span class="material-symbols-outlined text-[22px] shrink-0 {% if active_nav == 'dashboard' %}text-surface-container-lowest filled{% endif %}">
+              dashboard
+            </span>
+            <span class="sidebar-text truncate">Dashboard</span>
+          </a>
+          <!-- Tooltip en modo colapsado -->
+          <div class="sidebar-tooltip absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-slate-900/95 text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none items-center gap-2 border border-slate-700/80 backdrop-blur-xs">
+            <span>Dashboard</span>
+            {% if active_nav == 'dashboard' %}
+              <span class="w-1.5 h-1.5 rounded-full bg-secondary-container"></span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 2. Estudiantes -->
+        <div class="sidebar-tooltip-container relative group">
+          <a href="{% url 'admin_panel:students' %}"
+             class="sidebar-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                    {% if active_nav == 'students' %}
+                      bg-secondary text-surface-container-lowest shadow-sm font-semibold
+                    {% else %}
+                      text-on-primary-container hover:text-surface-container-lowest hover:bg-surface-container-highest/15
+                    {% endif %}">
+            <span class="material-symbols-outlined text-[22px] shrink-0 {% if active_nav == 'students' %}text-surface-container-lowest filled{% endif %}">
+              group
+            </span>
+            <span class="sidebar-text truncate">Estudiantes</span>
+          </a>
+          <!-- Tooltip en modo colapsado -->
+          <div class="sidebar-tooltip absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-slate-900/95 text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none items-center gap-2 border border-slate-700/80 backdrop-blur-xs">
+            <span>Estudiantes</span>
+            {% if active_nav == 'students' %}
+              <span class="w-1.5 h-1.5 rounded-full bg-secondary-container"></span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 3. Programas Académicos -->
+        <div class="sidebar-tooltip-container relative group">
+          <a href="{% url 'admin_panel:programs' %}"
+             class="sidebar-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                    {% if active_nav == 'programs' %}
+                      bg-secondary text-surface-container-lowest shadow-sm font-semibold
+                    {% else %}
+                      text-on-primary-container hover:text-surface-container-lowest hover:bg-surface-container-highest/15
+                    {% endif %}">
+            <span class="material-symbols-outlined text-[22px] shrink-0 {% if active_nav == 'programs' %}text-surface-container-lowest filled{% endif %}">
+              account_balance
+            </span>
+            <span class="sidebar-text truncate">Programas académicos</span>
+          </a>
+          <!-- Tooltip en modo colapsado -->
+          <div class="sidebar-tooltip absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-slate-900/95 text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none items-center gap-2 border border-slate-700/80 backdrop-blur-xs">
+            <span>Programas académicos</span>
+            {% if active_nav == 'programs' %}
+              <span class="w-1.5 h-1.5 rounded-full bg-secondary-container"></span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 4. Materias y Prerrequisitos -->
+        <div class="sidebar-tooltip-container relative group">
+          <a href="{% url 'admin_panel:courses' %}"
+             class="sidebar-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                    {% if active_nav == 'courses' %}
+                      bg-secondary text-surface-container-lowest shadow-sm font-semibold
+                    {% else %}
+                      text-on-primary-container hover:text-surface-container-lowest hover:bg-surface-container-highest/15
+                    {% endif %}">
+            <span class="material-symbols-outlined text-[22px] shrink-0 {% if active_nav == 'courses' %}text-surface-container-lowest filled{% endif %}">
+              account_tree
+            </span>
+            <span class="sidebar-text truncate">Materias y prerrequisitos</span>
+          </a>
+          <!-- Tooltip en modo colapsado -->
+          <div class="sidebar-tooltip absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-slate-900/95 text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none items-center gap-2 border border-slate-700/80 backdrop-blur-xs">
+            <span>Materias y prerrequisitos</span>
+            {% if active_nav == 'courses' %}
+              <span class="w-1.5 h-1.5 rounded-full bg-secondary-container"></span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 5. Horarios y Grupos -->
+        <div class="sidebar-tooltip-container relative group">
+          <a href="{% url 'admin_panel:schedules' %}"
+             class="sidebar-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                    {% if active_nav == 'schedules' %}
+                      bg-secondary text-surface-container-lowest shadow-sm font-semibold
+                    {% else %}
+                      text-on-primary-container hover:text-surface-container-lowest hover:bg-surface-container-highest/15
+                    {% endif %}">
+            <span class="material-symbols-outlined text-[22px] shrink-0 {% if active_nav == 'schedules' %}text-surface-container-lowest filled{% endif %}">
+              schedule
+            </span>
+            <span class="sidebar-text truncate">Horarios y grupos</span>
+          </a>
+          <!-- Tooltip en modo colapsado -->
+          <div class="sidebar-tooltip absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-slate-900/95 text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none items-center gap-2 border border-slate-700/80 backdrop-blur-xs">
+            <span>Horarios y grupos</span>
+            {% if active_nav == 'schedules' %}
+              <span class="w-1.5 h-1.5 rounded-full bg-secondary-container"></span>
+            {% endif %}
+          </div>
+        </div>
+
+      </nav>
+    </div>
+
+    <!-- Parte Inferior: Perfil del Administrador y Cerrar Sesión -->
+    <div class="pt-3 border-t border-outline-variant/20 space-y-2">
+      
+      <!-- Vista Expandida del Usuario -->
+      <div class="sidebar-hide-collapsed flex items-center gap-3 px-2 py-2 rounded-xl bg-surface-container-highest/10 border border-outline-variant/15">
+        <div class="w-9 h-9 rounded-full bg-secondary text-surface-container-lowest flex items-center justify-center font-bold text-sm shrink-0 shadow-sm ring-2 ring-secondary/30">
+          {{ request.user.first_name.0|upper|default:request.user.username.0|upper|default:"A" }}
+        </div>
+        <div class="overflow-hidden min-w-0 flex-1">
+          <div class="text-xs font-semibold text-surface-container-lowest truncate">
+            {{ request.user.get_full_name|default:request.user.username }}
+          </div>
+          <p class="text-[11px] text-on-primary-container truncate">
+            {{ request.user.email|default:"admin@edupilot.edu" }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Vista Colapsada del Usuario (Icon-only) -->
+      <div class="sidebar-show-collapsed hidden sidebar-tooltip-container relative group justify-center py-1">
+        <div class="w-9 h-9 rounded-full bg-secondary text-surface-container-lowest flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-secondary/30 cursor-pointer">
+          {{ request.user.first_name.0|upper|default:request.user.username.0|upper|default:"A" }}
+        </div>
+        <!-- Tooltip con información del usuario -->
+        <div class="sidebar-tooltip absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-slate-900/95 text-white text-xs rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none flex-col border border-slate-700/80 backdrop-blur-xs">
+          <span class="font-semibold">{{ request.user.get_full_name|default:request.user.username }}</span>
+          <span class="text-[11px] text-slate-300 font-mono">{{ request.user.email|default:"admin@edupilot.edu" }}</span>
+        </div>
+      </div>
+
+      <!-- Botón de Cerrar Sesión Expandido -->
+      <a href="{% url 'authentication:logout' %}"
+         class="sidebar-hide-collapsed flex items-center justify-center gap-2.5 w-full px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-200 hover:text-white border border-red-500/20 transition-all duration-150 text-xs font-medium group">
+        <span class="material-symbols-outlined text-[18px] text-red-300 group-hover:text-white transition-colors">logout</span>
+        <span>Cerrar sesión</span>
+      </a>
+
+      <!-- Botón de Cerrar Sesión Colapsado (Icon-only) -->
+      <div class="sidebar-show-collapsed hidden sidebar-tooltip-container relative group justify-center">
+        <a href="{% url 'authentication:logout' %}"
+           class="flex items-center justify-center w-9 h-9 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-200 hover:text-white border border-red-500/20 transition-all duration-150"
+           aria-label="Cerrar sesión">
+          <span class="material-symbols-outlined text-[18px]">logout</span>
+        </a>
+        <div class="sidebar-tooltip absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-red-950 text-red-100 text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none border border-red-800">
+          Cerrar sesión
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</aside>

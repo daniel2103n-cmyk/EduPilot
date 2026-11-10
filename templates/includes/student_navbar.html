@@ -1,0 +1,102 @@
+{# EduPilot — Navbar de Estudiante #}
+<header class="sticky top-0 right-0 z-30 h-16 w-full bg-surface-container-lowest border-b border-outline-variant/30 shadow-xs flex justify-between items-center px-4 md:px-6 shrink-0 transition-colors">
+  <!-- Izquierda: Toggle móvil + Breadcrumb / Título -->
+  <div class="flex items-center gap-3 md:gap-4 flex-1 max-w-2xl">
+    <!-- Botón Toggle Sidebar (Móvil) -->
+    <button type="button" onclick="toggleStudentSidebar()" class="md:hidden p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" aria-label="Abrir menú lateral">
+      <span class="material-symbols-outlined text-[22px]">menu</span>
+    </button>
+
+    <!-- Breadcrumb de Navegación -->
+    <div class="flex items-center gap-2 text-sm font-medium">
+      <a href="{% url 'student:dashboard' %}" class="text-primary hover:underline flex items-center gap-1 font-semibold">
+        <span class="material-symbols-outlined text-[18px]">school</span>
+        <span>EduPilot</span>
+      </a>
+      <span class="text-outline-variant font-normal">/</span>
+      <span class="text-on-surface font-semibold truncate">
+        {% if active_nav == 'dashboard' %}Dashboard Estudiantil
+        {% elif active_nav == 'historial' %}Historial Académico
+        {% elif active_nav == 'courses' %}Catálogo de Materias
+        {% elif active_nav == 'routes' %}Rutas y Proyección Curricular
+        {% elif active_nav == 'horarios' %}Matrícula y Horarios
+        {% elif active_nav == 'guardados' %}Mis Planes Guardados
+        {% else %}{{ page_title|default:"Portal Estudiante" }}{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- Derecha: Periodo, Programa, y Menú de Estudiante -->
+  <div class="flex items-center gap-3">
+    <!-- Semestre / Programa chip (Desktop) -->
+    {% if profile.current_semester or request.user.studentprofile.current_semester %}
+      <div class="hidden lg:flex items-center bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-900 rounded-lg px-2.5 py-1 text-xs font-semibold">
+        <span>Semestre {{ profile.current_semester|default:request.user.studentprofile.current_semester }}</span>
+      </div>
+    {% endif %}
+
+    <!-- Badge de Periodo -->
+    <div class="hidden sm:flex items-center bg-surface-container border border-outline-variant/40 rounded-lg px-3 py-1.5 gap-2 text-xs font-medium text-on-surface">
+      <span class="material-symbols-outlined text-secondary text-[16px]">event</span>
+      <span>Periodo: <strong class="text-secondary font-semibold">2026-2</strong></span>
+    </div>
+
+    <!-- Menú desplegable / Avatar del Estudiante -->
+    <div class="relative" id="student-user-menu-container">
+      <button type="button"
+              onclick="document.getElementById('student-user-dropdown').classList.toggle('hidden')"
+              class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-surface-container transition-colors focus:outline-none focus:ring-2 focus:ring-secondary/20">
+        <div class="w-8 h-8 rounded-full bg-secondary text-surface-container-lowest flex items-center justify-center font-bold text-xs ring-2 ring-secondary/20">
+          {{ request.user.first_name.0|upper|default:request.user.username.0|upper }}
+        </div>
+        <span class="hidden md:inline text-xs font-semibold text-on-surface max-w-[120px] truncate">
+          {{ request.user.first_name|default:request.user.username }}
+        </span>
+        <span class="material-symbols-outlined text-outline text-[18px]">arrow_drop_down</span>
+      </button>
+
+      <!-- Dropdown flotante -->
+      <div id="student-user-dropdown" class="hidden absolute right-0 mt-2 w-60 bg-surface-container-lowest rounded-xl shadow-xl border border-outline-variant/30 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div class="px-4 py-2.5 border-b border-outline-variant/20">
+          <p class="text-xs text-outline font-medium">Estudiante Activo:</p>
+          <p class="text-sm font-semibold text-on-surface truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
+          <p class="text-[11px] text-on-surface-variant font-mono truncate">Cód: {{ request.user.username }}</p>
+          <p class="text-[11px] text-primary truncate mt-0.5">{{ profile.program.name|default:request.user.studentprofile.program.name|default:"Pregrado" }}</p>
+        </div>
+
+        <div class="py-1">
+          <a href="{% url 'student:dashboard' %}" class="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container transition-colors">
+            <span class="material-symbols-outlined text-[18px] text-outline">dashboard</span>
+            <span>Mi Inicio</span>
+          </a>
+          <a href="{% url 'student:historial' %}" class="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container transition-colors">
+            <span class="material-symbols-outlined text-[18px] text-outline">school</span>
+            <span>Historial Académico</span>
+          </a>
+          <a href="{% url 'student:courses' %}" class="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container transition-colors">
+            <span class="material-symbols-outlined text-[18px] text-outline">menu_book</span>
+            <span>Materias</span>
+          </a>
+        </div>
+
+        <div class="pt-1 border-t border-outline-variant/20">
+          <a href="{% url 'authentication:logout' %}" class="flex items-center gap-2.5 px-4 py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-medium">
+            <span class="material-symbols-outlined text-[18px] text-red-500">logout</span>
+            <span>Cerrar sesión</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+  // Cerrar el dropdown al hacer click fuera
+  document.addEventListener('click', function(e) {
+    const container = document.getElementById('student-user-menu-container');
+    const dropdown = document.getElementById('student-user-dropdown');
+    if (container && dropdown && !container.contains(e.target)) {
+      dropdown.classList.add('hidden');
+    }
+  });
+</script>

@@ -1,160 +1,345 @@
-{% extends 'base.html' %}
+{% extends 'base_admin.html' %}
 
-{% block page_title %}Dashboard Administrador — EduPilot{% endblock %}
-{% block body_class %}flex{% endblock %}
+{% block page_title %}Dashboard Administrativo — EduPilot{% endblock %}
 
-{% block content %}
-<!-- ════════════════════ SIDEBAR ════════════════════ -->
-<aside class="fixed top-0 left-0 h-full w-64 bg-inverse-surface text-inverse-on-surface shadow-lg z-40 flex flex-col p-md gap-base">
-  <!-- Brand -->
-  <div class="flex items-center gap-sm mb-lg px-xs mt-xs">
-    <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-soft">
-      <span class="material-symbols-outlined text-on-primary text-xl" style="font-variation-settings: 'FILL' 1;">manage_accounts</span>
-    </div>
-    <div class="flex flex-col">
-      <span class="font-headline-md text-headline-md font-bold tracking-tight">EduPilot</span>
-      <span class="font-label-sm text-label-sm text-inverse-on-surface/70">Panel Administrativo</span>
-    </div>
-  </div>
-
-  <!-- Nav -->
-  <nav class="flex flex-col gap-xs flex-1 mt-md">
-    <a class="flex items-center gap-base px-md py-sm rounded-lg transition-all duration-300 {% if active_nav == 'dashboard' %}bg-primary text-on-primary shadow-md{% else %}text-inverse-on-surface/80 hover:bg-inverse-on-surface/10 hover:text-inverse-on-surface{% endif %}"
-       href="{% url 'admin_panel:dashboard' %}">
-      <span class="material-symbols-outlined" {% if active_nav == 'dashboard' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>space_dashboard</span>
-      <span class="font-label-md text-label-md">Dashboard</span>
-    </a>
-    <a class="flex items-center gap-base px-md py-sm rounded-lg transition-all duration-300 {% if active_nav == 'students' %}bg-primary text-on-primary shadow-md{% else %}text-inverse-on-surface/80 hover:bg-inverse-on-surface/10 hover:text-inverse-on-surface{% endif %}"
-       href="{% url 'admin_panel:students' %}">
-      <span class="material-symbols-outlined" {% if active_nav == 'students' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>groups</span>
-      <span class="font-label-md text-label-md">Estudiantes</span>
-    </a>
-    <a class="flex items-center gap-base px-md py-sm rounded-lg transition-all duration-300 {% if active_nav == 'courses' %}bg-primary text-on-primary shadow-md{% else %}text-inverse-on-surface/80 hover:bg-inverse-on-surface/10 hover:text-inverse-on-surface{% endif %}"
-       href="{% url 'admin_panel:courses' %}">
-      <span class="material-symbols-outlined" {% if active_nav == 'courses' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>menu_book</span>
-      <span class="font-label-md text-label-md">Materias</span>
-    </a>
-  </nav>
-
-  <!-- Bottom Profile -->
-  <div class="mt-auto pt-md border-t border-inverse-on-surface/10 flex flex-col gap-sm">
-    <div class="flex items-center gap-sm px-xs mb-xs">
-      <div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-sm shadow-sm">
-        {{ request.user.first_name.0|upper|default:"A" }}
-      </div>
-      <div class="flex-1 min-w-0">
-        <p class="font-label-sm text-label-sm truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
-        <p class="font-body-sm text-[11px] text-inverse-on-surface/60 truncate">{{ request.user.email }}</p>
-      </div>
-    </div>
-    <a href="{% url 'authentication:logout' %}" class="flex items-center gap-base px-md py-sm text-error/90 hover:bg-error-container/10 hover:text-error rounded-lg transition-colors">
-      <span class="material-symbols-outlined text-[20px]">logout</span>
-      <span class="font-label-md text-label-md">Cerrar sesión</span>
-    </a>
-  </div>
-</aside>
-
-<!-- ════════════════════ MAIN ════════════════════ -->
-<main class="ml-64 flex-1 flex flex-col min-h-screen">
-
-  <!-- Canvas -->
-  <div class="p-gutter flex flex-col gap-margin flex-1 mt-md">
-
-    <!-- Page Header -->
-    <div>
-      <h1 class="font-headline-xl text-headline-xl text-primary mb-xs">Resumen General</h1>
-      <p class="font-body-lg text-body-lg text-on-surface-variant">Bienvenido, {{ request.user.get_full_name|default:request.user.username }}.</p>
-    </div>
-
-    <!-- Metrics Bento Grid -->
-    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
-
-      <div class="bg-surface-container-lowest rounded-soft p-md shadow-soft flex flex-col gap-sm border border-transparent hover:border-primary-fixed transition-colors">
-        <div class="flex items-center justify-between">
-          <div class="w-12 h-12 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">school</span>
-          </div>
-          <span class="font-label-sm text-label-sm text-on-secondary-container bg-secondary-container px-xs py-xs rounded">Programas</span>
-        </div>
-        <div class="mt-xs">
-          <h3 class="font-body-md text-body-md text-on-surface-variant">Programas</h3>
-          <p class="font-headline-lg text-headline-lg text-on-surface">{{ stats.total_programs|default:"—" }}</p>
-        </div>
-      </div>
-
-      <div class="bg-surface-container-lowest rounded-soft p-md shadow-soft flex flex-col gap-sm border border-transparent hover:border-primary-fixed transition-colors">
-        <div class="flex items-center justify-between">
-          <div class="w-12 h-12 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
-          </div>
-          <span class="font-label-sm text-label-sm text-on-secondary-container bg-secondary-container px-xs py-xs rounded">Estudiantes</span>
-        </div>
-        <div class="mt-xs">
-          <h3 class="font-body-md text-body-md text-on-surface-variant">Estudiantes</h3>
-          <p class="font-headline-lg text-headline-lg text-on-surface">{{ stats.total_students|default:"—" }}</p>
-        </div>
-      </div>
-
-      <div class="bg-surface-container-lowest rounded-soft p-md shadow-soft flex flex-col gap-sm border border-transparent hover:border-primary-fixed transition-colors">
-        <div class="flex items-center justify-between">
-          <div class="w-12 h-12 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">book</span>
-          </div>
-          <span class="font-label-sm text-label-sm text-outline px-xs py-xs rounded">Materias</span>
-        </div>
-        <div class="mt-xs">
-          <h3 class="font-body-md text-body-md text-on-surface-variant">Materias Activas</h3>
-          <p class="font-headline-lg text-headline-lg text-on-surface">{{ stats.total_courses|default:"—" }}</p>
-        </div>
-      </div>
-
-      <div class="bg-surface-container-lowest rounded-soft p-md shadow-soft flex flex-col gap-sm border border-transparent hover:border-primary-fixed transition-colors">
-        <div class="flex items-center justify-between">
-          <div class="w-12 h-12 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_tree</span>
-          </div>
-          <span class="font-label-sm text-label-sm text-on-tertiary-container bg-tertiary-fixed px-xs py-xs rounded">Prereqs</span>
-        </div>
-        <div class="mt-xs">
-          <h3 class="font-body-md text-body-md text-on-surface-variant">Prerrequisitos</h3>
-          <p class="font-headline-lg text-headline-lg text-on-surface">{{ stats.total_prerequisites|default:"—" }}</p>
-        </div>
-      </div>
-
-    </section>
-
-    <!-- Quick Access -->
-    <section class="mt-md">
-      <h2 class="font-headline-md text-headline-md text-on-surface mb-gutter">Accesos Directos</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-
-        <a class="group bg-surface-container-lowest rounded-soft p-md shadow-soft flex items-center gap-md hover:bg-surface-container-low transition-colors duration-200"
-           href="{% url 'admin_panel:students' %}">
-          <div class="w-16 h-16 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center group-hover:scale-105 transition-transform">
-            <span class="material-symbols-outlined" style="font-size: 32px;">group</span>
-          </div>
-          <div class="flex-1">
-            <h3 class="font-headline-md text-headline-md text-primary mb-xs">Directorio de Estudiantes</h3>
-            <p class="font-body-md text-body-md text-on-surface-variant">Consulta matrículas, expedientes y progreso académico.</p>
-          </div>
-          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
-        </a>
-
-        <a class="group bg-surface-container-lowest rounded-soft p-md shadow-soft flex items-center gap-md hover:bg-surface-container-low transition-colors duration-200"
-           href="{% url 'admin_panel:courses' %}">
-          <div class="w-16 h-16 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center group-hover:scale-105 transition-transform">
-            <span class="material-symbols-outlined" style="font-size: 32px;">book</span>
-          </div>
-          <div class="flex-1">
-            <h3 class="font-headline-md text-headline-md text-primary mb-xs">Catálogo de Materias</h3>
-            <p class="font-body-md text-body-md text-on-surface-variant">Administra asignaturas, créditos y prerrequisitos.</p>
-          </div>
-          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
-        </a>
-
-      </div>
-    </section>
-
-  </div><!-- /canvas -->
-</main>
+{% block admin_content %}
+<div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] w-full mx-auto min-w-0">
+<!-- ==================== WELCOME & QUICK ACTIONS ==================== -->
+<div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-2 border-b border-outline-variant/30">
+<div>
+<h2 class="text-headline-lg font-headline-lg font-bold text-on-surface tracking-tight">Bienvenido, {{ request.user.get_full_name|default:request.user.username }}</h2>
+<p class="text-body-md font-body-md text-on-surface-variant">Supervisión integral de rendimiento, catálogo de materias y avance académico de estudiantes</p>
+</div>
+<div class="flex flex-wrap items-center gap-2.5">
+<!-- Primary & Secondary Quick Actions -->
+<a href="{% url 'admin_panel:students' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary text-surface-container-lowest text-label-md font-label-md hover:bg-secondary/90 shadow-sm transition-all">
+<span class="material-symbols-outlined text-base">person_add</span>
+<span>+ Gestionar estudiantes</span>
+</a>
+<a href="{% url 'admin_panel:programs' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-lowest text-on-surface border border-outline-variant/60 text-label-md font-label-md hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-base text-outline">account_balance</span>
+<span>Programas académicos</span>
+</a>
+<a href="{% url 'admin_panel:courses' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-lowest text-on-surface border border-outline-variant/60 text-label-md font-label-md hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-base text-outline">library_books</span>
+<span>Catálogo de materias</span>
+</a>
+<a href="{% url 'admin_panel:schedules' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-lowest text-on-surface border border-outline-variant/60 text-label-md font-label-md hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-base text-outline">calendar_month</span>
+<span>Horarios y grupos</span>
+</a>
+</div>
+</div>
+<!-- ==================== 4 KPI CARDS ==================== -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- KPI 1: Estudiantes -->
+<div class="bg-surface-container-lowest p-5 rounded-lg border border-outline-variant/40 shadow-sm hover:border-outline-variant transition-all">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-outline">Total estudiantes</span>
+<div class="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-xl">groups</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline gap-2">
+<span class="text-headline-xl font-headline-xl text-on-surface tracking-tight">{{ stats.total_students }}</span>
+<span class="inline-flex items-center text-label-sm font-label-sm text-on-tertiary-container bg-tertiary-fixed/30 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-xs mr-0.5">school</span> Activos
+</span>
+</div>
+<p class="mt-2 text-body-sm font-body-sm text-outline flex items-center gap-1">
+<span class="material-symbols-outlined text-xs text-secondary">check</span>
+Registrados en la plataforma
+</p>
+</div>
+<!-- KPI 2: Materias -->
+<div class="bg-surface-container-lowest p-5 rounded-lg border border-outline-variant/40 shadow-sm hover:border-outline-variant transition-all">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-outline">Total de materias</span>
+<div class="w-9 h-9 rounded-lg bg-tertiary-fixed/40 flex items-center justify-center text-on-tertiary-container">
+<span class="material-symbols-outlined text-xl">library_books</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline gap-2">
+<span class="text-headline-xl font-headline-xl text-on-surface tracking-tight">{{ stats.total_courses }}</span>
+<span class="text-label-md font-label-md text-outline font-normal">asignaturas</span>
+</div>
+<p class="mt-2 text-body-sm font-body-sm text-outline flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-on-tertiary-container"></span>
+{{ stats.courses_with_prereq_count }} con prerrequisitos definidos
+</p>
+</div>
+<!-- KPI 3: Tasa de Aprobación -->
+<div class="bg-surface-container-lowest p-5 rounded-lg border border-outline-variant/40 shadow-sm hover:border-outline-variant transition-all">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-outline">Tasa de aprobación</span>
+<div class="w-9 h-9 rounded-lg bg-secondary-fixed/50 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-xl">insights</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline gap-2">
+<span class="text-headline-xl font-headline-xl text-on-surface tracking-tight">{{ stats.pass_rate }}%</span>
+<span class="inline-flex items-center text-label-sm font-label-sm text-secondary bg-surface-container px-1.5 py-0.5 rounded font-semibold">
+{{ stats.passed_records }} aprobadas
+</span>
+</div>
+<p class="mt-2 text-body-sm font-body-sm text-outline flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+{{ stats.failed_records }} materias reprobadas registradas
+</p>
+</div>
+<!-- KPI 4: Programas -->
+<div class="bg-surface-container-lowest p-5 rounded-lg border border-outline-variant/40 shadow-sm hover:border-outline-variant transition-all">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-outline">Programas académicos</span>
+<div class="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-xl">account_balance</span>
+</div>
+</div>
+<div class="mt-3 flex items-baseline gap-2">
+<span class="text-headline-xl font-headline-xl text-on-surface tracking-tight">{{ stats.total_programs }}</span>
+<span class="text-label-md font-label-md text-outline font-normal">carreras activas</span>
+</div>
+<p class="mt-2 text-body-sm font-body-sm text-outline flex items-center gap-1">
+<span class="material-symbols-outlined text-xs text-secondary">school</span>
+Con mallas curriculares vigentes
+</p>
+</div>
+</div>
+<!-- ==================== ANALYTICS & METRICS SECTION ==================== -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Left Column: Status Distribution -->
+<div class="lg:col-span-6 bg-surface-container-lowest rounded-lg border border-outline-variant/40 p-5 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface font-semibold">Distribución de estudiantes por estado</h3>
+<p class="text-body-sm font-body-sm text-outline">Segmentación en tiempo real según ciclo 2025-1</p>
+</div>
+</div>
+<!-- Segmented Progress Bar Visual -->
+<div class="space-y-4 pt-2">
+<div class="h-4 w-full bg-surface-container rounded-full overflow-hidden flex shadow-inner">
+<div class="h-full bg-secondary" style="width: 84.0%" title="Regular: 84.0%"></div>
+<div class="h-full bg-amber-400" style="width: 11.2%" title="Atención preventiva: 11.2%"></div>
+<div class="h-full bg-error" style="width: 4.8%" title="Riesgo crítico: 4.8%"></div>
+</div>
+<!-- Legend Grid -->
+<div class="grid grid-cols-3 gap-3 pt-2">
+<div class="p-3 rounded border border-outline-variant/30 bg-surface">
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-on-surface font-medium">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary"></span>
+<span>Estado Regular</span>
+</div>
+<div class="mt-1 text-headline-sm font-headline-sm font-bold text-on-surface">3,224</div>
+<div class="text-code-sm font-code-sm text-outline">84.0% del total</div>
+</div>
+<div class="p-3 rounded border border-outline-variant/30 bg-surface">
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-amber-700 font-medium">
+<span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+<span>Atención Prev.</span>
+</div>
+<div class="mt-1 text-headline-sm font-headline-sm font-bold text-on-surface">432</div>
+<div class="text-code-sm font-code-sm text-outline">11.2% rezago 1 mat.</div>
+</div>
+<div class="p-3 rounded border border-error/20 bg-error-container/20">
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-error font-semibold">
+<span class="w-2.5 h-2.5 rounded-full bg-error"></span>
+<span>Riesgo Crítico</span>
+</div>
+<div class="mt-1 text-headline-sm font-headline-sm font-bold text-error">186</div>
+<div class="text-code-sm font-code-sm text-error/80">4.8% vulnerables</div>
+</div>
+</div>
+<div class="p-3 bg-surface-container-low rounded border border-outline-variant/20 flex items-start gap-2 text-body-sm font-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary text-base shrink-0 mt-0.5">info</span>
+<span>Criterios automáticos basados en reprobación consecutiva, desbalance en créditos y desface de mallas curriculares vigentes.</span>
+</div>
+</div>
+</div>
+<!-- Right Column: Cohort Progress & Bottlenecks -->
+<div class="lg:col-span-6 bg-surface-container-lowest rounded-lg border border-outline-variant/40 p-5 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface font-semibold">Progreso curricular por cohorte</h3>
+<p class="text-body-sm font-body-sm text-outline">Tasa de avance esperado vs. materias con mayor congestión</p>
+</div>
+<span class="text-code-sm font-code-sm text-outline bg-surface px-2 py-1 rounded border border-outline-variant/40">Audit 2025-1</span>
+</div>
+<!-- Cohort Bars -->
+<div class="space-y-3">
+<div>
+<div class="flex justify-between text-body-sm font-body-sm mb-1">
+<span class="font-medium text-on-surface">Cohorte 2021 (8vo - 9no semestre)</span>
+<span class="font-code-sm text-code-sm font-semibold text-secondary">76% avance prom.</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 76%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-body-sm font-body-sm mb-1">
+<span class="font-medium text-on-surface">Cohorte 2022 (6to - 7mo semestre)</span>
+<span class="font-code-sm text-code-sm font-semibold text-secondary">58% avance prom.</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 58%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-body-sm font-body-sm mb-1">
+<span class="font-medium text-on-surface">Cohorte 2023 (4to - 5to semestre)</span>
+<span class="font-code-sm text-code-sm font-semibold text-amber-600">39% avance prom.</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-amber-500 rounded-full" style="width: 39%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-body-sm font-body-sm mb-1">
+<span class="font-medium text-on-surface">Cohorte 2024 (2do - 3er semestre)</span>
+<span class="font-code-sm text-code-sm font-semibold text-on-tertiary-container">18% inicial</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-fixed-dim rounded-full" style="width: 18%"></div>
+</div>
+</div>
+</div>
+<!-- Bottleneck Courses Alert Strip -->
+<div class="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-on-surface-variant font-medium">Cuellos de botella detectados:</span>
+<div class="flex gap-2">
+<span class="inline-flex items-center gap-1 bg-error-container text-error px-2 py-0.5 rounded text-code-sm font-code-sm font-medium">
+<span class="material-symbols-outlined text-xs">lock</span> Cálculo Multivariado (42 est.)
+</span>
+<span class="inline-flex items-center gap-1 bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-code-sm font-code-sm font-medium">
+<span class="material-symbols-outlined text-xs">lock_clock</span> Sist. Distribuidos (28 est.)
+</span>
+</div>
+</div>
+</div>
+</div>
+<!-- ==================== MAIN TABLE: AT-RISK STUDENTS ==================== -->
+<section class="bg-surface-container-lowest rounded-lg border border-outline-variant/40 shadow-sm overflow-hidden">
+<!-- Table Header & Filter Bar -->
+<div class="p-5 border-b border-outline-variant/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<h3 class="text-headline-md font-headline-md font-bold text-on-surface">Estudiantes recientes</h3>
+</div>
+<div class="flex items-center gap-3">
+<a class="inline-flex items-center gap-1 text-label-md font-label-md text-secondary font-semibold hover:underline" href="{% url 'admin_panel:students' %}">
+<span>Ver todos los estudiantes</span>
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Analytical Data Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface border-b border-outline-variant/40 text-label-sm font-label-sm text-outline uppercase tracking-wider">
+<th class="py-3 px-4">Estudiante</th>
+<th class="py-3 px-4">Código Univ.</th>
+<th class="py-3 px-4">Programa / Carrera</th>
+<th class="py-3 px-4 text-center">Sem.</th>
+<th class="py-3 px-4 text-right">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20 text-body-md font-body-md text-on-surface">
+{% for student in recent_students %}
+<tr class="hover:bg-surface/60 transition-colors">
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-sm shrink-0">
+  {{ student.user.first_name.0|upper }}{{ student.user.last_name.0|upper|default:student.user.username.0|upper }}
+</div>
+<div>
+<div class="font-semibold text-on-surface">{{ student.user.get_full_name|default:student.user.username }}</div>
+<div class="text-body-sm font-body-sm text-outline">{{ student.user.email }}</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 font-code-sm text-code-sm text-outline">{{ student.user.username }}</td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+{{ student.program.name|default:"Sin programa" }}
+</span>
+</td>
+<td class="py-3.5 px-4 text-center font-medium">Sem. {{ student.current_semester }}</td>
+<td class="py-3.5 px-4 text-right">
+<div class="flex items-center justify-end gap-2">
+<a href="{% url 'admin_panel:student_detail' student.id %}" class="px-2.5 py-1 text-label-sm font-label-sm font-medium rounded border border-outline-variant/60 hover:bg-secondary hover:text-surface-container-lowest text-on-surface transition-colors">
+Ver perfil
+</a>
+</div>
+</td>
+</tr>
+{% empty %}
+<tr>
+<td colspan="5" class="py-8 text-center text-outline">
+No hay estudiantes registrados recientemente.
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+<div class="p-3 bg-surface border-t border-outline-variant/30 flex items-center justify-between text-body-sm font-body-sm text-outline">
+<span>Mostrando {{ recent_students|length }} de {{ stats.total_students }} estudiantes</span>
+<a href="{% url 'admin_panel:students' %}" class="inline-flex items-center gap-1 text-label-md font-label-md text-secondary font-semibold hover:underline">
+<span>Ver listado completo</span>
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+</section>
+<!-- ==================== AUDIT & RECENT ACTIVITY ==================== -->
+<section class="bg-surface-container-lowest rounded-lg border border-outline-variant/40 p-5 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">history</span>
+<h3 class="text-headline-sm font-headline-sm text-on-surface font-semibold">Registro de actividad reciente y auditoría administrativa</h3>
+</div>
+<span class="text-label-sm font-label-sm text-outline">Actualizado automáticamente (Live feed)</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="p-3 rounded-lg border border-outline-variant/30 bg-surface hover:border-secondary/40 transition-colors">
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-on-tertiary-container font-semibold">
+<span class="material-symbols-outlined text-base">verified</span>
+<span>Plan de recuperación aprobado</span>
+</div>
+<p class="mt-1 text-body-sm font-body-sm text-on-surface">Lic. Morales validó la excepción de matrícula de Alex Torres (MAT-301).</p>
+<div class="mt-2 text-code-sm font-code-sm text-outline">Hace 35 min • Matrícula Especial</div>
+</div>
+<div class="p-3 rounded-lg border border-outline-variant/30 bg-surface hover:border-secondary/40 transition-colors">
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-secondary font-semibold">
+<span class="material-symbols-outlined text-base">account_tree</span>
+<span>Actualización de prerrequisitos</span>
+</div>
+<p class="mt-1 text-body-sm font-body-sm text-on-surface">Coordinación de Sistemas modificó la cadena de correlatividad para SIS-702.</p>
+<div class="mt-2 text-code-sm font-code-sm text-outline">Hoy, 10:15 AM • Malla 2021</div>
+</div>
+<div class="p-3 rounded-lg border border-outline-variant/30 bg-surface hover:border-secondary/40 transition-colors">
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-on-secondary-container font-semibold">
+<span class="material-symbols-outlined text-base">event_available</span>
+<span>Publicación de oferta horaria 2025-2</span>
+</div>
+<p class="mt-1 text-body-sm font-body-sm text-on-surface">Se generaron 142 grupos con 0 cruces estructurales validados por algoritmo.</p>
+<div class="mt-2 text-code-sm font-code-sm text-outline">Ayer, 18:20 • Planificación</div>
+</div>
+<div class="p-3 rounded-lg border border-outline-variant/30 bg-surface hover:border-secondary/40 transition-colors">
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-indigo-700 font-semibold">
+<span class="material-symbols-outlined text-base">auto_awesome</span>
+<span>Nuevo programa curricular</span>
+</div>
+<p class="mt-1 text-body-sm font-body-sm text-on-surface">Malla 2025 de Ing. en Inteligencia Artificial registrada exitosamente.</p>
+<div class="mt-2 text-code-sm font-code-sm text-outline">11 Feb 2025 • Aprobación Rectoral</div>
+</div>
+</div>
+</section>
+<!-- ==================== FOOTER ==================== -->
+<footer class="pt-4 pb-8 text-center border-t border-outline-variant/30">
+<p class="text-body-sm font-body-sm text-outline">
+Datos y métricas correspondientes a simulación y registros administrativos del periodo 2025-1.
+</p>
+</footer>
+</div>
 {% endblock %}

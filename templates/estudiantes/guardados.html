@@ -1,0 +1,293 @@
+{% extends 'base_student.html' %}
+
+{% block page_title %}Mis Planes y Horarios Guardados — EduPilot{% endblock %}
+
+{% block student_content %}
+  <main class="flex-1 p-8 space-y-6 max-w-[1440px] w-full mx-auto">
+
+    <!-- Header Section -->
+    <section class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-outline-variant/40">
+      <div>
+        <h1 class="text-headline-xl font-headline-xl text-on-surface font-bold tracking-tight">Mis planes y horarios guardados</h1>
+        <p class="text-body-md font-body-md text-on-surface-variant mt-0.5">
+          Consulta y gestiona las rutas académicas y horarios semanales que has guardado en tu cuenta.
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="{% url 'student:routes' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-surface-container-lowest hover:bg-on-secondary-container transition-colors text-label-md font-label-md font-medium shadow-sm">
+          <span class="material-symbols-outlined text-[20px]">add</span>
+          <span>Nueva ruta académica</span>
+        </a>
+        <a href="{% url 'student:horarios' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface hover:bg-surface-container text-label-md font-label-md font-medium transition-colors shadow-sm">
+          <span class="material-symbols-outlined text-[20px]">calendar_month</span>
+          <span>Planificar horario</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Resumen KPIs -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div class="p-5 rounded-xl bg-surface-container-lowest border border-outline-variant/70 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-label-md font-label-md text-on-surface-variant font-medium">Rutas guardadas</span>
+          <span class="p-2 rounded-lg bg-surface-container text-secondary">
+            <span class="material-symbols-outlined text-[20px]">folder</span>
+          </span>
+        </div>
+        <div class="mt-3 flex items-baseline gap-2">
+          <span class="text-headline-xl font-headline-xl font-bold text-on-surface">{{ total_plans }}</span>
+          <span class="text-body-sm font-body-sm text-on-surface-variant">rutas en tu catálogo</span>
+        </div>
+        <div class="mt-2.5 flex items-center gap-1.5 pt-2 border-t border-outline-variant/30 text-xs text-on-surface-variant">
+          <span class="w-2 h-2 rounded-full bg-secondary"></span>
+          <span>Persistidas históricamente</span>
+        </div>
+      </div>
+
+      <div class="p-5 rounded-xl bg-surface-container-lowest border border-outline-variant/70 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-label-md font-label-md text-on-surface-variant font-medium">Ruta principal activa</span>
+          <span class="p-2 rounded-lg bg-surface-container text-secondary">
+            <span class="material-symbols-outlined text-[20px]">star</span>
+          </span>
+        </div>
+        <div class="mt-3 flex items-baseline gap-2">
+          <span class="text-headline-xl font-headline-xl font-bold text-on-surface">{{ active_route.estimated_semesters|default:"--" }}</span>
+          <span class="text-body-sm font-body-sm text-on-surface-variant">semestres proyectados</span>
+        </div>
+        <div class="mt-2.5 flex items-center gap-1.5 pt-2 border-t border-outline-variant/30 text-xs text-on-surface-variant">
+          <span>Plan: <strong class="text-on-surface font-semibold">{{ active_route.name|default:"Ninguna seleccionada" }}</strong></span>
+        </div>
+      </div>
+
+      <div class="p-5 rounded-xl bg-surface-container-lowest border border-outline-variant/70 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-label-md font-label-md text-on-surface-variant font-medium">Horarios semestrales guardados</span>
+          <span class="p-2 rounded-lg bg-surface-container text-secondary">
+            <span class="material-symbols-outlined text-[20px]">schedule</span>
+          </span>
+        </div>
+        <div class="mt-3 flex items-baseline gap-2">
+          <span class="text-headline-xl font-headline-xl font-bold text-on-surface">{{ total_schedules }}</span>
+          <span class="text-body-sm font-body-sm text-on-surface-variant">horarios registrados</span>
+        </div>
+        <div class="mt-2.5 flex items-center gap-1.5 pt-2 border-t border-outline-variant/30 text-xs text-on-surface-variant">
+          <span>Periodo académico vigente: <strong>2025-1</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 1: RUTAS ACADÉMICAS GUARDADAS -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-outline-variant/40">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-secondary text-[22px]">alt_route</span>
+          <h2 class="text-headline-sm font-bold text-on-surface">Tus Rutas Académicas Guardadas</h2>
+        </div>
+        <span class="text-label-sm text-on-surface-variant">{{ saved_routes|length }} ruta(s)</span>
+      </div>
+
+      {% if saved_routes %}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {% for route in saved_routes %}
+        <div class="bg-surface-container-lowest rounded-xl border {% if route.is_favorite %}border-2 border-secondary shadow-md{% else %}border-outline-variant/70 shadow-sm hover:border-secondary/60{% endif %} p-5 flex flex-col justify-between space-y-4 transition-all">
+          <div class="space-y-3">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-bold text-headline-sm text-on-surface">{{ route.name }}</h3>
+                </div>
+                <p class="text-label-sm text-on-surface-variant mt-0.5">Estrategia: <span class="font-medium text-secondary">{{ route.strategy_label }}</span></p>
+              </div>
+
+              {% if route.is_favorite %}
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-secondary text-surface-container-lowest shadow-xs">
+                <span class="material-symbols-outlined text-[13px]">star</span> Favorita
+              </span>
+              {% endif %}
+            </div>
+
+            <!-- Métricas de la ruta -->
+            <div class="grid grid-cols-3 gap-2 py-2 px-3 rounded-lg bg-surface-container-low text-center text-xs">
+              <div>
+                <span class="block font-bold text-on-surface text-label-md">{{ route.estimated_semesters }}</span>
+                <span class="text-on-surface-variant">Semestres</span>
+              </div>
+              <div>
+                <span class="block font-bold text-on-surface text-label-md">{{ route.total_credits }}</span>
+                <span class="text-on-surface-variant">Créditos</span>
+              </div>
+              <div>
+                <span class="block font-bold text-on-surface text-label-md">{{ route.total_courses }}</span>
+                <span class="text-on-surface-variant">Materias</span>
+              </div>
+            </div>
+
+            <!-- Estado de margen 10 semestres -->
+            <div class="text-xs">
+              {% if route.is_within_ideal_limit %}
+              <span class="text-emerald-700 font-semibold flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                Dentro del margen ideal (≤10 sem)
+              </span>
+              {% else %}
+              <span class="text-amber-700 font-semibold flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">warning</span>
+                Sobrepermanencia (+{{ route.over_limit_semesters }} sem)
+              </span>
+              {% endif %}
+            </div>
+
+            <p class="text-[11px] text-on-surface-variant">Guardado el: {{ route.created_at|date:"d/m/Y H:i" }}</p>
+          </div>
+
+          <!-- Acciones de la ruta -->
+          <div class="pt-3 border-t border-outline-variant/40 flex items-center justify-between gap-2">
+            <a href="{% url 'student:horarios' %}?route_id={{ route.id }}"
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-surface-container-lowest text-label-sm font-semibold hover:bg-on-secondary-container transition-colors shadow-xs">
+              <span class="material-symbols-outlined text-[16px]">calendar_today</span>
+              <span>Usar en Horarios</span>
+            </a>
+
+            <div class="flex items-center gap-1">
+              {% if not route.is_favorite %}
+              <a href="{% url 'student:routes_set_favorite' route.id %}" title="Marcar como favorita"
+                 class="p-1.5 rounded-lg border border-outline-variant text-on-surface-variant hover:text-secondary hover:border-secondary transition-colors">
+                <span class="material-symbols-outlined text-[18px]">star_border</span>
+              </a>
+              {% endif %}
+              <a href="{% url 'student:routes_delete' route.id %}" onclick="return confirm('¿Seguro que deseas eliminar esta ruta guardada?');" title="Eliminar ruta"
+                 class="p-1.5 rounded-lg border border-outline-variant text-on-surface-variant hover:text-error hover:border-error transition-colors">
+                <span class="material-symbols-outlined text-[18px]">delete</span>
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="p-8 bg-surface-container-lowest rounded-xl border border-outline-variant text-center space-y-3">
+        <span class="material-symbols-outlined text-[42px] text-outline opacity-40">folder_off</span>
+        <h3 class="text-headline-sm font-bold text-on-surface">Aún no tienes rutas guardadas</h3>
+        <p class="text-body-sm text-on-surface-variant max-w-md mx-auto">
+          Genera una ruta académica desde el módulo de planificación y guárdala para utilizarla en la creación de tus horarios.
+        </p>
+        <a href="{% url 'student:routes' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-surface-container-lowest text-label-md font-medium hover:bg-on-secondary-container transition-colors">
+          <span>Generar mi primera ruta</span>
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </a>
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- SECCIÓN 2: HORARIOS SEMESTRALES GUARDADOS -->
+    <section class="space-y-4 pt-4">
+      <div class="flex items-center justify-between pb-2 border-b border-outline-variant/40">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-secondary text-[22px]">calendar_month</span>
+          <h2 class="text-headline-sm font-bold text-on-surface">Tus Horarios Semestrales Guardados</h2>
+        </div>
+        <span class="text-label-sm text-on-surface-variant">{{ schedules_with_status|length }} horario(s)</span>
+      </div>
+
+      {% if schedules_with_status %}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {% for item in schedules_with_status %}
+        {% with sch=item.schedule drift=item.drift %}
+        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/70 shadow-sm p-5 flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="font-bold text-headline-sm text-on-surface">{{ sch.name }}</h3>
+                <p class="text-label-sm text-on-surface-variant mt-0.5">
+                  Periodo: <strong class="text-secondary">{{ sch.academic_period }}</strong>
+                  {% if sch.saved_route %}• Origen: {{ sch.saved_route.name }}{% endif %}
+                </p>
+              </div>
+
+              {% if sch.is_valid %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Validado
+              </span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                Con conflictos
+              </span>
+              {% endif %}
+            </div>
+
+            <!-- Alerta si hubo cambios de oferta -->
+            {% if drift.has_changes %}
+            <div class="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+              <span class="font-bold flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">update</span>
+                Cambio en la oferta académica detectado:
+              </span>
+              <p>Grupos que cambiaron o ya no están activos: {{ drift.missing_groups|join:", " }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Métricas del horario -->
+            <div class="grid grid-cols-3 gap-2 py-2 px-3 rounded-lg bg-surface-container-low text-center text-xs">
+              <div>
+                <span class="block font-bold text-on-surface text-label-md">{{ sch.metrics.quality_score|default:"--" }}/100</span>
+                <span class="text-on-surface-variant">Calidad</span>
+              </div>
+              <div>
+                <span class="block font-bold text-on-surface text-label-md">{{ sch.metrics.days_with_class|default:"--" }}</span>
+                <span class="text-on-surface-variant">Días/sem</span>
+              </div>
+              <div>
+                <span class="block font-bold text-on-surface text-label-md">{{ sch.metrics.total_class_hours|default:"--" }}h</span>
+                <span class="text-on-surface-variant">Horas clase</span>
+              </div>
+            </div>
+
+            <!-- Lista de materias del horario -->
+            <div class="space-y-1 pt-1 text-xs">
+              <span class="font-semibold text-on-surface block">Materias inscritas ({{ sch.items.count }}):</span>
+              <ul class="space-y-1 pl-1">
+                {% for itm in sch.items.all %}
+                <li class="flex items-center justify-between text-on-surface-variant border-b border-outline-variant/20 pb-0.5">
+                  <span class="line-clamp-1">{{ itm.course_name_snapshot }}</span>
+                  <span class="font-code-sm text-secondary font-bold shrink-0 ml-2">G{{ itm.group_number }}</span>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+
+            <p class="text-[11px] text-on-surface-variant">Guardado el: {{ sch.created_at|date:"d/m/Y H:i" }}</p>
+          </div>
+
+          <!-- Acciones de horario -->
+          <div class="pt-3 border-t border-outline-variant/40 flex items-center justify-between">
+            <a href="{% url 'student:horarios' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline-variant hover:bg-surface-container text-label-sm text-on-surface font-medium transition-colors">
+              <span class="material-symbols-outlined text-[16px]">visibility</span>
+              <span>Abrir en Planificador</span>
+            </a>
+            <a href="{% url 'student:horarios_delete' sch.id %}" onclick="return confirm('¿Seguro que deseas eliminar este horario guardado?');" title="Eliminar horario"
+               class="p-1.5 rounded-lg border border-outline-variant text-on-surface-variant hover:text-error hover:border-error transition-colors">
+              <span class="material-symbols-outlined text-[18px]">delete</span>
+            </a>
+          </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="p-8 bg-surface-container-lowest rounded-xl border border-outline-variant text-center space-y-3">
+        <span class="material-symbols-outlined text-[42px] text-outline opacity-40">event_busy</span>
+        <h3 class="text-headline-sm font-bold text-on-surface">No has guardado horarios para este periodo</h3>
+        <p class="text-body-sm text-on-surface-variant max-w-md mx-auto">
+          Visita el módulo de matrícula y horarios para generar y guardar tu cuadrícula semanal personalizada.
+        </p>
+        <a href="{% url 'student:horarios' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-surface-container-lowest text-label-md font-medium hover:bg-on-secondary-container transition-colors">
+          <span>Ir a Horarios y Matrícula</span>
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </a>
+      </div>
+      {% endif %}
+    </section>
+
+  </main>
+{% endblock %}

@@ -1,0 +1,1235 @@
+{% extends 'base_admin.html' %}
+
+{% block page_title %}Materias y Prerrequisitos — EduPilot{% endblock %}
+
+{% block admin_content %}
+<div class="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] w-full mx-auto min-w-0 overflow-x-hidden">
+
+<!-- MESSAGES -->
+{% if messages %}
+<div class="space-y-2">
+  {% for message in messages %}
+  <div class="flex items-center gap-3 px-4 py-3 rounded-lg border
+    {% if message.tags == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-800
+    {% elif message.tags == 'error' %}bg-error-container/40 border-error/30 text-on-error-container
+    {% else %}bg-surface-container-high border-outline-variant text-on-surface{% endif %}
+    text-body-sm font-body-sm">
+    <span class="material-symbols-outlined text-[18px]">
+      {% if message.tags == 'success' %}check_circle{% elif message.tags == 'error' %}error{% else %}info{% endif %}
+    </span>
+    {{ message }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ===================================================================== -->
+<!-- ENCABEZADO Y RESUMEN (KPIs)                                           -->
+<!-- ===================================================================== -->
+<div class="flex flex-col gap-4">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="space-y-1">
+      <div class="flex items-center gap-2.5">
+        <h1 class="text-headline-lg font-headline-lg text-on-surface tracking-tight">Materias y prerrequisitos</h1>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-secondary-fixed text-on-secondary-fixed border border-secondary/20">
+          Módulo A05 • Catálogo Curricular
+        </span>
+      </div>
+      <p class="text-body-md font-body-md text-on-surface-variant max-w-3xl">
+        Administra el catálogo de asignaturas por semestre y las dependencias académicas en el grafo de precedencia.
+      </p>
+    </div>
+    <!-- Botón Crear materia -->
+    <div class="flex items-center gap-3 shrink-0">
+      <button class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-surface-container-lowest font-label-md text-label-md shadow hover:bg-on-secondary-container transition-all duration-150 cursor-pointer"
+        onclick="openCreateCourseForSemester({{ current_semester }})">
+        <span class="material-symbols-outlined text-[18px]">add</span>
+        <span>+ Crear materia</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 4 KPI SUMMARY CARDS -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
+    <!-- KPI 1 -->
+    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/40 shadow-sm flex items-start justify-between min-w-0">
+      <div class="space-y-1 truncate">
+        <span class="text-label-sm font-label-sm uppercase tracking-wider text-on-surface-variant block truncate">Total de materias</span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-headline-xl font-headline-xl text-on-surface tabular-nums">{{ stats.total_courses }}</span>
+          <span class="text-label-sm font-label-sm text-on-surface-variant">asignaturas</span>
+        </div>
+        <p class="text-body-sm font-body-sm text-outline truncate">{{ stats.total_programs }} programas cubiertos</p>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-secondary shrink-0">
+        <span class="material-symbols-outlined text-[22px]">library_books</span>
+      </div>
+    </div>
+    <!-- KPI 2 -->
+    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/40 shadow-sm flex items-start justify-between min-w-0">
+      <div class="space-y-1 truncate">
+        <span class="text-label-sm font-label-sm uppercase tracking-wider text-on-surface-variant block truncate">Con prerrequisitos</span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-headline-xl font-headline-xl text-on-surface tabular-nums">{{ stats.courses_with_prereq }}</span>
+          <span class="text-label-sm font-label-sm text-secondary font-semibold">{{ stats.prereq_percentage }}%</span>
+        </div>
+        <p class="text-body-sm font-body-sm text-outline truncate">Con dependencias</p>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-secondary-fixed/50 flex items-center justify-center text-secondary shrink-0">
+        <span class="material-symbols-outlined text-[22px]">hub</span>
+      </div>
+    </div>
+    <!-- KPI 3 -->
+    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/40 shadow-sm flex items-start justify-between min-w-0">
+      <div class="space-y-1 truncate">
+        <span class="text-label-sm font-label-sm uppercase tracking-wider text-on-surface-variant block truncate">Sin prerrequisitos</span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-headline-xl font-headline-xl text-on-surface tabular-nums">{{ stats.total_courses|add:"-"|add:stats.courses_with_prereq }}</span>
+          <span class="text-label-sm font-label-sm text-on-surface-variant">materias</span>
+        </div>
+        <p class="text-body-sm font-body-sm text-on-surface-variant truncate">Iniciales o libres</p>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-outline shrink-0">
+        <span class="material-symbols-outlined text-[22px]">radio_button_unchecked</span>
+      </div>
+    </div>
+    <!-- KPI 4 -->
+    <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/40 shadow-sm flex items-start justify-between min-w-0">
+      <div class="space-y-1 truncate">
+        <span class="text-label-sm font-label-sm uppercase tracking-wider text-on-surface-variant block truncate">Programas</span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-headline-xl font-headline-xl text-on-surface tabular-nums">{{ stats.total_programs }}</span>
+        </div>
+        <p class="text-body-sm font-body-sm text-outline truncate">Programas activos</p>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-tertiary-fixed/40 flex items-center justify-center text-tertiary-container shrink-0">
+        <span class="material-symbols-outlined text-[22px]">school</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================================== -->
+<!-- FILTROS Y BÚSQUEDA                                                    -->
+<!-- ===================================================================== -->
+<form method="get" action="{% url 'admin_panel:courses' %}" class="w-full min-w-0">
+  {% if current_semester != 'all' %}
+  <input type="hidden" name="semester" value="{{ current_semester }}">
+  {% endif %}
+  <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/40 shadow-sm space-y-3 w-full min-w-0">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+      <!-- Search Input -->
+      <div class="md:col-span-6 relative min-w-0">
+        <span class="material-symbols-outlined absolute left-3 top-2.5 text-outline text-[18px]">search</span>
+        <input name="q" value="{{ search_query }}" class="w-full pl-9 pr-4 py-2 bg-surface-container-low/40 border border-outline-variant/60 rounded-lg text-body-sm font-body-sm text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary placeholder:text-outline" placeholder="Buscar por código o nombre..." type="text"/>
+      </div>
+      <!-- Filter: Programa -->
+      <div class="md:col-span-3 min-w-0">
+        <div class="relative">
+          <select name="program" class="w-full appearance-none bg-surface-container-lowest border border-outline-variant/60 rounded-lg px-3 py-2 text-body-sm font-body-sm text-on-surface pr-8 focus:outline-none focus:border-secondary">
+            <option value="">Todos los programas</option>
+            {% for p in programs %}
+            <option value="{{ p.id }}" {% if selected_program == p.id|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+          </select>
+          <span class="material-symbols-outlined absolute right-2.5 top-2.5 pointer-events-none text-outline text-[18px]">expand_more</span>
+        </div>
+      </div>
+      <!-- Botones -->
+      <div class="md:col-span-3 flex gap-2 min-w-0">
+        <button type="submit" class="flex-1 px-4 py-2 bg-secondary text-surface-container-lowest rounded-lg text-label-md font-label-md hover:bg-on-secondary-container transition-colors cursor-pointer text-center font-medium">Filtrar</button>
+        {% if has_filters %}
+        <a href="{% url 'admin_panel:courses' %}{% if current_semester != 'all' %}?semester={{ current_semester }}{% endif %}" class="px-3 py-2 border border-outline-variant rounded-lg text-label-sm font-label-sm text-outline hover:text-on-surface hover:bg-surface-container-low flex items-center justify-center transition-colors" title="Limpiar filtros">
+          <span class="material-symbols-outlined text-[16px]">close</span>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="flex items-center justify-between pt-2 border-t border-outline-variant/20 text-body-sm font-body-sm text-on-surface-variant flex-wrap gap-2">
+      <span>
+        Mostrando <strong class="text-on-surface">{{ courses|length }}</strong> materias
+        {% if current_semester != 'all' %}del <strong>Semestre {{ current_semester }}</strong>{% else %}(vista global){% endif %}
+        {% if has_filters %} con filtros aplicados{% endif %}
+      </span>
+      {% if search_query %}
+      <span class="text-label-sm font-label-sm text-secondary bg-secondary-fixed px-2 py-0.5 rounded">Filtro: "{{ search_query }}"</span>
+      {% endif %}
+    </div>
+  </div>
+</form>
+
+<!-- ===================================================================== -->
+<!-- PAGINACIÓN Y NAVEGACIÓN POR SEMESTRE                                   -->
+<!-- ===================================================================== -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/40 shadow-sm p-4 space-y-3 w-full min-w-0 overflow-hidden">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+    <div class="flex items-center gap-2 min-w-0">
+      <span class="material-symbols-outlined text-secondary text-[22px] shrink-0">calendar_view_week</span>
+      <div class="truncate">
+        <h2 class="text-title-md font-title-md text-on-surface truncate">Navegación por Semestres</h2>
+        <p class="text-label-sm font-label-sm text-on-surface-variant truncate">Explora el plan de estudios por semestre académico.</p>
+      </div>
+    </div>
+
+    <!-- Navegación Anterior / Siguiente -->
+    <div class="flex items-center gap-2 shrink-0">
+      {% if prev_semester %}
+      <a href="{% url 'admin_panel:courses' %}?semester={{ prev_semester }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_program %}&program={{ selected_program }}{% endif %}"
+         class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-outline-variant text-body-sm font-body-sm text-on-surface hover:bg-surface-container-low transition-colors">
+        <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+        <span>Sem. {{ prev_semester }}</span>
+      </a>
+      {% else %}
+      <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-outline-variant/30 text-body-sm font-body-sm text-outline opacity-40 cursor-not-allowed">
+        <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+        <span>Anterior</span>
+      </span>
+      {% endif %}
+
+      <span class="px-2.5 py-1 text-label-md font-label-md font-bold text-secondary bg-secondary-fixed rounded-md whitespace-nowrap">
+        {% if current_semester == 'all' %}Todos los Semestres{% else %}Semestre {{ current_semester }}{% endif %}
+      </span>
+
+      {% if next_semester %}
+      <a href="{% url 'admin_panel:courses' %}?semester={{ next_semester }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_program %}&program={{ selected_program }}{% endif %}"
+         class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-outline-variant text-body-sm font-body-sm text-on-surface hover:bg-surface-container-low transition-colors">
+        <span>Sem. {{ next_semester }}</span>
+        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+      </a>
+      {% else %}
+      <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-outline-variant/30 text-body-sm font-body-sm text-outline opacity-40 cursor-not-allowed">
+        <span>Siguiente</span>
+        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Píldoras / Botones de Semestres (Scroll horizontal contenido) -->
+  <div class="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 w-full max-w-full">
+    {% for sem in semesters_nav %}
+    <a href="{% url 'admin_panel:courses' %}?semester={{ sem.number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_program %}&program={{ selected_program }}{% endif %}"
+       class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-label-md font-label-md transition-all
+         {% if current_semester == sem.number %}
+           bg-secondary text-surface-container-lowest font-bold shadow-sm ring-2 ring-secondary/30
+         {% elif sem.count > 0 %}
+           bg-surface-container-low text-on-surface hover:bg-surface-container border border-outline-variant/40
+         {% else %}
+           bg-surface-container-low/40 text-outline border border-outline-variant/20 hover:bg-surface-container-low
+         {% endif %}">
+      <span>Semestre {{ sem.number }}</span>
+      <span class="px-1.5 py-0.2 rounded-full text-label-sm font-label-sm {% if current_semester == sem.number %}bg-white/20 text-white{% else %}bg-surface-container-high text-on-surface-variant{% endif %}">
+        {{ sem.count }}
+      </span>
+    </a>
+    {% endfor %}
+
+    <!-- Opción Ver Todos -->
+    <a href="{% url 'admin_panel:courses' %}?semester=all{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_program %}&program={{ selected_program }}{% endif %}"
+       class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-label-md font-label-md transition-all
+         {% if current_semester == 'all' %}
+           bg-secondary text-surface-container-lowest font-bold shadow-sm ring-2 ring-secondary/30
+         {% else %}
+           bg-surface-container-low text-on-surface hover:bg-surface-container border border-outline-variant/40
+         {% endif %}">
+      <span class="material-symbols-outlined text-[16px]">view_list</span>
+      <span>Ver Todos</span>
+      <span class="px-1.5 py-0.2 rounded-full text-label-sm font-label-sm {% if current_semester == 'all' %}bg-white/20 text-white{% else %}bg-surface-container-high text-on-surface-variant{% endif %}">
+        {{ stats.total_courses }}
+      </span>
+    </a>
+  </div>
+</div>
+
+<!-- ===================================================================== -->
+<!-- LAYOUT PRINCIPAL: TABLA Y GRAFO (TOTALMENTE ANTI-OVERFLOW)            -->
+<!-- ===================================================================== -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start pb-12 w-full min-w-0">
+  <!-- TABLA DE MATERIAS (7 COLS EN XL, min-w-0, overflow-hidden) -->
+  <div class="xl:col-span-7 w-full min-w-0 overflow-hidden bg-surface-container-lowest rounded-xl border border-outline-variant/40 shadow-sm flex flex-col">
+    <div class="px-5 py-4 border-b border-outline-variant/30 flex items-center justify-between gap-3 min-w-0">
+      <div class="truncate">
+        <h2 class="text-headline-sm font-headline-sm text-on-surface truncate">Catálogo de asignaturas</h2>
+        <p class="text-body-sm font-body-sm text-on-surface-variant truncate">
+          {% if current_semester != 'all' %}
+          Semestre {{ current_semester }} • Haz clic para ver el grafo.
+          {% else %}
+          Todas las asignaturas • Haz clic para ver el grafo.
+          {% endif %}
+        </p>
+      </div>
+      {% if current_semester_stats and current_semester != 'all' %}
+      <div class="hidden sm:flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-lg border border-outline-variant/30 text-label-sm font-label-sm shrink-0">
+        <span class="text-on-surface-variant">Créditos: <strong class="text-on-surface">{{ current_semester_stats.credits }}</strong></span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Table Container con scroll horizontal propio sin empujar layout -->
+    <div class="overflow-x-auto w-full">
+      <table class="w-full text-left border-collapse min-w-[500px]">
+        <thead>
+          <tr class="bg-surface-container-low/60 border-b border-outline-variant/30 text-label-sm font-label-sm text-on-surface-variant uppercase tracking-wider">
+            <th class="py-3 px-3">Código</th>
+            <th class="py-3 px-4">Materia</th>
+            <th class="py-3 px-2 text-center">Créd.</th>
+            <th class="py-3 px-3">Semestre</th>
+            <th class="py-3 px-3">Prerrequisitos</th>
+            <th class="py-3 px-3 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-outline-variant/20 text-body-sm font-body-sm">
+          {% for course in courses %}
+          <tr id="row-course-{{ course.id }}"
+              class="course-row hover:bg-secondary-fixed/20 transition-colors cursor-pointer group"
+              onclick="showCourseDetail({{ course.id }}, '{{ course.code|escapejs }}', '{{ course.name|escapejs }}', {{ course.credits }}, {{ course.level }}, '{{ course.program.name|default_if_none:""|escapejs }}', {{ course.program_id|default:"null" }})">
+            <td class="py-3.5 px-3 font-code-sm text-code-sm text-on-surface font-medium whitespace-nowrap">
+              <span class="px-2 py-0.5 rounded bg-surface-container border border-outline-variant/40 group-hover:border-secondary/40 transition-colors">{{ course.code }}</span>
+            </td>
+            <td class="py-3.5 px-4 min-w-[140px] max-w-[200px]">
+              <div class="font-medium text-on-surface flex items-center gap-1.5 truncate">
+                <span class="truncate">{{ course.name }}</span>
+                <span class="material-symbols-outlined text-outline group-hover:text-secondary text-[16px] shrink-0" title="Ver en grafo">hub</span>
+              </div>
+              <span class="text-label-sm font-label-sm text-outline block truncate">
+                {% if course.program %}{{ course.program.name }}{% else %}Sin programa{% endif %}
+              </span>
+            </td>
+            <td class="py-3.5 px-2 text-center font-code-sm text-on-surface whitespace-nowrap">{{ course.credits }} cr</td>
+            <td class="py-3.5 px-3 whitespace-nowrap">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-container text-on-surface font-medium">
+                Sem. {{ course.level }}
+              </span>
+            </td>
+            <td class="py-3.5 px-3 min-w-[120px]">
+              <div id="prereq-badges-{{ course.id }}" class="flex flex-wrap gap-1">
+                {% for prereq in course.course_prerequisites.all %}
+                <span class="px-1.5 py-0.5 rounded text-code-sm font-code-sm bg-surface-container-lowest border border-outline-variant/50 text-on-surface" title="{{ prereq.required_course.name }} (Semestre {{ prereq.required_course.level }})">
+                  {{ prereq.required_course.code }}
+                </span>
+                {% empty %}
+                <span class="text-label-sm font-label-sm text-outline italic">Sin prerrequisitos</span>
+                {% endfor %}
+              </div>
+            </td>
+            <td class="py-3.5 px-3 text-right whitespace-nowrap">
+              <div class="flex items-center justify-end gap-1" onclick="event.stopPropagation()">
+                <button class="p-1 rounded hover:bg-surface-container text-outline hover:text-on-surface transition-colors cursor-pointer"
+                  title="Editar materia"
+                  onclick="openEditCourse({{ course.id }}, '{{ course.code|escapejs }}', '{{ course.name|escapejs }}', {{ course.credits }}, {{ course.level }}, '{{ course.description|default_if_none:""|escapejs }}', '{{ course.color }}', '{% if course.program %}{{ course.program.id }}{% endif %}')">
+                  <span class="material-symbols-outlined text-[18px]">edit</span>
+                </button>
+                <form method="post" action="{% url 'admin_panel:courses' %}" class="inline" onsubmit="return confirm('¿Eliminar materia «{{ course.name }}»? Esta acción no se puede deshacer.')">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete_course">
+                  <input type="hidden" name="course_id" value="{{ course.id }}">
+                  <button type="submit" class="p-1 rounded hover:bg-error-container/40 text-outline hover:text-error transition-colors cursor-pointer" title="Eliminar materia">
+                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="py-12 text-center text-on-surface-variant">
+              <div class="flex flex-col items-center gap-2">
+                <span class="material-symbols-outlined text-[40px] text-outline">library_books</span>
+                <p class="text-body-md font-body-md">
+                  No hay materias registradas en {% if current_semester != 'all' %}Semestre {{ current_semester }}{% else %}este catálogo{% endif %}{% if has_filters %} con los filtros aplicados{% endif %}.
+                </p>
+                <button onclick="openCreateCourseForSemester({{ current_semester }})" class="text-secondary text-label-md font-label-md hover:underline mt-1 cursor-pointer">
+                  + Crear materia en Semestre {{ current_semester }} →
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PANEL LATERAL: GRAFO Y REGLAS DE PRECEDENCIA (5 COLS EN XL, min-w-0, overflow-hidden) -->
+  <div id="course-detail-panel" class="xl:col-span-5 w-full min-w-0 overflow-hidden bg-surface-container-lowest rounded-xl border border-outline-variant/40 shadow-sm p-5 sm:p-6 space-y-6">
+    <!-- Estado vacío -->
+    <div id="panel-empty" class="flex flex-col items-center justify-center py-16 text-center text-on-surface-variant gap-3">
+      <div class="w-14 h-14 rounded-2xl bg-secondary-fixed/50 flex items-center justify-center text-secondary">
+        <span class="material-symbols-outlined text-[32px]">hub</span>
+      </div>
+      <div>
+        <h3 class="text-title-md font-title-md text-on-surface">Grafo y Reglas de Precedencia</h3>
+        <p class="text-body-sm font-body-sm text-outline max-w-xs mx-auto mt-1">
+          Haz clic en cualquier materia del catálogo para visualizar su grafo y gestionar sus prerrequisitos directamente.
+        </p>
+      </div>
+    </div>
+
+    <!-- Contenido del panel (oculto hasta selección) -->
+    <div id="panel-content" class="hidden space-y-6 w-full min-w-0">
+      <!-- Header de la materia en el grafo -->
+      <div class="border-b border-outline-variant/30 pb-4 min-w-0">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-label-sm font-label-sm text-secondary font-bold uppercase tracking-wider flex items-center gap-1">
+            <span class="material-symbols-outlined text-[16px]">hub</span>
+            Grafo y Precedencia
+          </span>
+          <span id="panel-course-code-badge" class="px-2 py-0.5 rounded bg-surface-container-high font-code-sm text-code-sm font-bold text-on-surface border border-outline-variant/50 shrink-0"></span>
+        </div>
+        <h3 id="panel-title" class="text-headline-md font-headline-md text-on-surface mt-1 break-words"></h3>
+        <div class="flex flex-wrap items-center gap-2 mt-3 text-body-sm font-body-sm text-on-surface-variant">
+          <span id="panel-meta-program" class="inline-flex items-center gap-1 bg-surface-container px-2.5 py-0.5 rounded text-label-sm font-label-sm text-on-surface truncate max-w-[220px]"></span>
+          <span id="panel-meta-credits" class="inline-flex items-center gap-1 bg-surface-container px-2.5 py-0.5 rounded text-label-sm font-label-sm text-on-surface"></span>
+          <span id="panel-meta-level" class="inline-flex items-center gap-1 bg-secondary-fixed text-on-secondary-fixed px-2.5 py-0.5 rounded text-label-sm font-label-sm font-semibold"></span>
+        </div>
+      </div>
+
+      <!-- DIAGRAMA VISUAL DEL GRAFO (FLUJO DE PRECEDENCIA SEGURO Y COMPACTO) -->
+      <div class="p-3.5 rounded-xl bg-surface-container-low/60 border border-outline-variant/30 space-y-2.5 w-full min-w-0 overflow-hidden">
+        <span class="text-label-sm font-label-sm text-secondary font-bold uppercase tracking-wider flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">account_tree</span>
+          Diagrama de Precedencia Curricular
+        </span>
+
+        <!-- Flujo Vertical Conectado -->
+        <div class="flex flex-col items-center gap-1.5 w-full min-w-0">
+          <!-- 1. ENTRADA: Prerrequisitos requeridos -->
+          <div class="w-full bg-surface-container-lowest p-2.5 rounded-lg border border-outline-variant/40 space-y-1.5 min-w-0">
+            <div class="flex items-center justify-between text-label-sm font-label-sm text-outline">
+              <span class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">input</span>
+                Materias Previas Requeridas
+              </span>
+              <span id="graph-inputs-badge" class="font-code-sm text-code-sm"></span>
+            </div>
+            <div id="graph-inputs" class="flex flex-wrap gap-1.5 min-w-0 pt-0.5"></div>
+          </div>
+
+          <!-- Flecha de flujo -->
+          <div class="flex items-center justify-center text-secondary py-0.5">
+            <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
+          </div>
+
+          <!-- 2. NODO CENTRAL: Materia Seleccionada -->
+          <div class="w-full p-3 rounded-xl bg-secondary-fixed/30 border-2 border-secondary shadow-xs min-w-0 space-y-1">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-secondary px-2 py-0.5 rounded-full bg-secondary/10">Materia Seleccionada</span>
+              <span id="graph-current-level" class="text-label-sm font-label-sm font-semibold text-secondary"></span>
+            </div>
+            <div id="graph-current-node" class="text-body-md font-body-md font-bold text-on-surface break-words"></div>
+          </div>
+
+          <!-- Flecha de flujo -->
+          <div class="flex items-center justify-center text-secondary py-0.5">
+            <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
+          </div>
+
+          <!-- 3. SALIDA: Desbloquea a -->
+          <div class="w-full bg-surface-container-lowest p-2.5 rounded-lg border border-outline-variant/40 space-y-1.5 min-w-0">
+            <div class="flex items-center justify-between text-label-sm font-label-sm text-outline">
+              <span class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">output</span>
+                Materias que Desbloquea
+              </span>
+              <span id="graph-outputs-badge" class="font-code-sm text-code-sm"></span>
+            </div>
+            <div id="graph-outputs" class="flex flex-wrap gap-1.5 min-w-0 pt-0.5"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GESTIÓN DE PRERREQUISITOS REQUERIDOS -->
+      <div class="space-y-3 w-full min-w-0">
+        <div class="flex items-center justify-between">
+          <label class="text-label-md font-label-md text-on-surface font-semibold flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-secondary text-[18px]">input</span>
+            <span>Prerrequisitos requeridos</span>
+            <span id="panel-prereqs-count" class="text-label-sm font-label-sm px-1.5 py-0.2 rounded-full bg-surface-container-high text-on-surface">0</span>
+          </label>
+        </div>
+
+        <!-- Lista de Prerrequisitos con botón eliminar -->
+        <div id="panel-prereqs" class="space-y-2 w-full min-w-0">
+          <!-- Llenado por JS -->
+        </div>
+
+        <!-- Formulario para Agregar Nuevo Prerrequisito Directamente desde el Grafo -->
+        <div id="panel-add-prereq-box" class="p-3.5 rounded-xl border border-secondary/30 bg-surface-container-low/40 space-y-3 w-full min-w-0">
+          <div class="flex items-center justify-between">
+            <span class="text-label-md font-label-md text-on-surface font-semibold flex items-center gap-1">
+              <span class="material-symbols-outlined text-secondary text-[16px]">add_circle</span>
+              <span>Añadir nuevo prerrequisito</span>
+            </span>
+            <span class="text-label-sm font-label-sm text-outline">Solo semestres anteriores</span>
+          </div>
+
+          <div id="add-prereq-form-content" class="space-y-2.5 w-full min-w-0">
+            <div class="relative w-full">
+              <select id="select-new-prereq"
+                      class="w-full appearance-none px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-sm font-body-sm text-on-surface focus:outline-none focus:border-secondary pr-8">
+                <option value="">Selecciona una materia previa...</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-2.5 top-3 pointer-events-none text-outline text-[18px]">expand_more</span>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+              <span id="add-prereq-hint" class="text-label-sm font-label-sm text-outline truncate"></span>
+              <button id="btn-add-prereq" type="button" onclick="handleAddPrerequisiteFromPanel()"
+                      class="px-4 py-2 rounded-lg bg-secondary text-surface-container-lowest text-label-md font-label-md font-medium hover:bg-on-secondary-container transition-colors flex items-center gap-1.5 cursor-pointer shrink-0">
+                <span class="material-symbols-outlined text-[16px]">link</span>
+                <span>Vincular</span>
+              </button>
+            </div>
+          </div>
+          <div id="add-prereq-not-available" class="hidden text-body-sm font-body-sm text-outline italic py-1">
+            Esta materia es de Semestre 1 (ciclo inicial), por lo que no puede tener materias previas como prerrequisito.
+          </div>
+        </div>
+      </div>
+
+      <!-- Validación anti-ciclos -->
+      <div class="p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start gap-2.5 w-full min-w-0">
+        <span class="material-symbols-outlined text-emerald-700 text-[18px] shrink-0 mt-0.5">check_circle</span>
+        <div class="space-y-0.5 min-w-0">
+          <span class="text-emerald-950 font-label-md font-semibold text-label-md block">Reglas de validación activas</span>
+          <p class="text-body-sm font-body-sm text-emerald-900 leading-snug">
+            Restricción de semestres anteriores, prevención de auto-dependencias y detección de ciclos en tiempo real.
+          </p>
+        </div>
+      </div>
+
+      <!-- Dependientes (salientes) -->
+      <div class="w-full min-w-0">
+        <label class="text-label-md font-label-md text-on-surface font-semibold flex items-center gap-1.5 mb-2">
+          <span class="material-symbols-outlined text-secondary text-[18px]">output</span>
+          <span>Materias que dependen de esta</span>
+          <span id="panel-dependents-count" class="text-label-sm font-label-sm px-1.5 py-0.2 rounded-full bg-surface-container-high text-on-surface">0</span>
+        </label>
+        <div id="panel-dependents" class="space-y-1.5 p-3 rounded-lg bg-surface-container-low border border-outline-variant/30 w-full min-w-0">
+          <!-- Llenado por JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="pt-4 pb-8 border-t border-outline-variant/30 flex items-center gap-2 text-body-sm font-body-sm text-on-surface-variant">
+  <span class="material-symbols-outlined text-[18px] text-secondary">verified_user</span>
+  <span><strong>EduPilot:</strong> Las dependencias se sincronizan automáticamente con las validaciones de matrícula y simulación de graduación.</span>
+</footer>
+
+</div>
+
+<!-- ===================================================================== -->
+<!-- MODAL: CREAR MATERIA                                                   -->
+<!-- ===================================================================== -->
+<div id="modal-crear-materia" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="w-full max-w-2xl bg-surface rounded-2xl shadow-2xl border border-outline-variant/40 p-6 flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between">
+      <div class="space-y-0.5">
+        <h2 class="text-headline-sm font-headline-sm text-on-surface font-bold">Crear nueva materia</h2>
+        <p class="text-body-sm font-body-sm text-on-surface-variant">Registra la asignatura y configura sus prerrequisitos válidos.</p>
+      </div>
+      <button onclick="document.getElementById('modal-crear-materia').classList.add('hidden')" class="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <form method="post" action="{% url 'admin_panel:courses' %}" class="flex flex-col gap-4">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create_course">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-label-md font-label-md text-on-surface font-medium">Código <span class="text-error">*</span></label>
+          <input type="text" name="code" required placeholder="Ej. MAT-301"
+            class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary placeholder:text-outline">
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-label-md font-label-md text-on-surface font-medium">Programa</label>
+          <div class="relative">
+            <select name="program_id" id="create_program_id" class="w-full appearance-none px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary pr-8">
+              <option value="">Sin programa</option>
+              {% for p in programs %}
+              <option value="{{ p.id }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
+            <span class="material-symbols-outlined absolute right-2.5 top-3 pointer-events-none text-outline text-[18px]">expand_more</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-label-md font-label-md text-on-surface font-medium">Nombre de la materia <span class="text-error">*</span></label>
+        <input type="text" name="name" required placeholder="Ej. Cálculo Multivariado"
+          class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary placeholder:text-outline">
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-label-md font-label-md text-on-surface font-medium">Descripción</label>
+        <textarea name="description" rows="2" placeholder="Descripción opcional de la materia..."
+          class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary placeholder:text-outline resize-none"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-label-md font-label-md text-on-surface font-medium">Créditos <span class="text-error">*</span></label>
+          <input type="number" name="credits" required min="0" max="10" value="3"
+            class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary">
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-label-md font-label-md text-on-surface font-medium">Semestre (nivel) <span class="text-error">*</span></label>
+          <input type="number" name="level" id="create_level" required min="1" max="12" value="{% if current_semester != 'all' %}{{ current_semester }}{% else %}1{% endif %}"
+            oninput="filterModalPrereqs('create')"
+            class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary">
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-center justify-between">
+          <label class="text-label-md font-label-md text-on-surface font-medium">Prerrequisitos (Agrupados por Semestre)</label>
+          <span id="create_prereq_hint" class="text-label-sm font-label-sm text-secondary"></span>
+        </div>
+        <select name="prerequisites" id="create_prerequisites" multiple
+          class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary h-36">
+        </select>
+        <p class="text-label-sm font-label-sm text-outline">Mantén presionado Ctrl (o Cmd) para seleccionar múltiples materias previas.</p>
+      </div>
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-outline-variant/30">
+        <button type="button" onclick="document.getElementById('modal-crear-materia').classList.add('hidden')"
+          class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface text-label-md font-label-md hover:bg-surface-container transition-colors">
+          Cancelar
+        </button>
+        <button type="submit" class="px-5 py-2 rounded-lg bg-secondary text-surface-container-lowest text-label-md font-label-md font-semibold shadow hover:bg-on-secondary-container transition-colors cursor-pointer">
+          Crear materia
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================================================================== -->
+<!-- MODAL: EDITAR MATERIA                                                   -->
+<!-- ===================================================================== -->
+<div id="modal-editar-materia" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="w-full max-w-2xl bg-surface rounded-2xl shadow-2xl border border-outline-variant/40 p-6 flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between">
+      <div class="space-y-0.5">
+        <h2 class="text-headline-sm font-headline-sm text-on-surface font-bold">Editar materia</h2>
+        <p class="text-body-sm font-body-sm text-on-surface-variant">Modifica datos curriculares y asignación de prerrequisitos.</p>
+      </div>
+      <button onclick="document.getElementById('modal-editar-materia').classList.add('hidden')" class="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <form method="post" action="{% url 'admin_panel:courses' %}" class="flex flex-col gap-4">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="edit_course">
+      <input type="hidden" name="course_id" id="edit_course_id">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-label-md font-label-md text-on-surface font-medium">Código <span class="text-error">*</span></label>
+          <input type="text" name="code" id="edit_code" required
+            class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary">
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-label-md font-label-md text-on-surface font-medium">Programa</label>
+          <div class="relative">
+            <select name="program_id" id="edit_program_id" class="w-full appearance-none px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary pr-8">
+              <option value="">Sin programa</option>
+              {% for p in programs %}
+              <option value="{{ p.id }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
+            <span class="material-symbols-outlined absolute right-2.5 top-3 pointer-events-none text-outline text-[18px]">expand_more</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-label-md font-label-md text-on-surface font-medium">Nombre <span class="text-error">*</span></label>
+        <input type="text" name="name" id="edit_name" required
+          class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary">
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-label-md font-label-md text-on-surface font-medium">Descripción</label>
+        <textarea name="description" id="edit_description" rows="2"
+          class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary resize-none"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-label-md font-label-md text-on-surface font-medium">Créditos <span class="text-error">*</span></label>
+          <input type="number" name="credits" id="edit_credits" required min="0" max="10"
+            class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary">
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-label-md font-label-md text-on-surface font-medium">Semestre (nivel) <span class="text-error">*</span></label>
+          <input type="number" name="level" id="edit_level" required min="1" max="12"
+            oninput="filterModalPrereqs('edit')"
+            class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary">
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-center justify-between">
+          <label class="text-label-md font-label-md text-on-surface font-medium">Prerrequisitos (Agrupados por Semestre)</label>
+          <span id="edit_prereq_hint" class="text-label-sm font-label-sm text-secondary"></span>
+        </div>
+        <select name="prerequisites" id="edit_prerequisites" multiple
+          class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary h-36">
+        </select>
+        <p class="text-label-sm font-label-sm text-outline">Solo materias de semestres anteriores a esta. Ctrl+Click para seleccionar múltiples.</p>
+      </div>
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-outline-variant/30">
+        <button type="button" onclick="document.getElementById('modal-editar-materia').classList.add('hidden')"
+          class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface text-label-md font-label-md hover:bg-surface-container transition-colors">
+          Cancelar
+        </button>
+        <button type="submit" class="px-5 py-2 rounded-lg bg-secondary text-surface-container-lowest text-label-md font-label-md font-semibold shadow hover:bg-on-secondary-container transition-colors cursor-pointer">
+          Guardar cambios
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================================================================== -->
+<!-- DATA JSON PARA JS                                                     -->
+<!-- ===================================================================== -->
+<script id="all-courses-catalog" type="application/json">
+[
+  {% for course in all_courses %}
+  {
+    "id": {{ course.id }},
+    "code": "{{ course.code|escapejs }}",
+    "name": "{{ course.name|escapejs }}",
+    "credits": {{ course.credits }},
+    "level": {{ course.level }},
+    "program_id": {% if course.program %}{{ course.program.id }}{% else %}null{% endif %},
+    "program_name": "{{ course.program.name|default_if_none:""|escapejs }}"
+  }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+]
+</script>
+
+<script id="courses-data" type="application/json">
+[
+  {% for course in courses %}
+  {
+    "id": {{ course.id }},
+    "code": "{{ course.code|escapejs }}",
+    "name": "{{ course.name|escapejs }}",
+    "credits": {{ course.credits }},
+    "level": {{ course.level }},
+    "description": "{{ course.description|default_if_none:""|escapejs }}",
+    "color": "{{ course.color }}",
+    "program_id": {% if course.program %}{{ course.program.id }}{% else %}null{% endif %},
+    "program_name": "{{ course.program.name|default_if_none:""|escapejs }}",
+    "prerequisites": [{% for p in course.course_prerequisites.all %}{"id": {{ p.required_course.id }}, "code": "{{ p.required_course.code|escapejs }}", "name": "{{ p.required_course.name|escapejs }}", "level": {{ p.required_course.level }}, "credits": {{ p.required_course.credits }}}{% if not forloop.last %},{% endif %}{% endfor %}],
+    "dependents": [{% for d in course.required_for.all %}{"id": {{ d.course.id }}, "code": "{{ d.course.code|escapejs }}", "name": "{{ d.course.name|escapejs }}", "level": {{ d.course.level }}, "credits": {{ d.course.credits }}}{% if not forloop.last %},{% endif %}{% endfor %}]
+  }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+]
+</script>
+
+<script>
+const allCatalogCourses = JSON.parse(document.getElementById('all-courses-catalog').textContent);
+let coursesData = JSON.parse(document.getElementById('courses-data').textContent);
+let selectedCourseId = {% if selected_course_id %}{{ selected_course_id }}{% else %}null{% endif %};
+let currentSelectedCourse = null;
+
+// Construir selector de prerrequisitos agrupado por semestre con restricciones
+function populatePrereqsSelect(selectElement, targetLevel, excludeCourseId, selectedIds = []) {
+  selectElement.innerHTML = '';
+  
+  const groups = {};
+  allCatalogCourses.forEach(c => {
+    // RESTRICCIONES:
+    // 1. No la misma materia
+    if (excludeCourseId && c.id === excludeCourseId) return;
+    // 2. Solo semestres menores (< targetLevel)
+    if (targetLevel !== null && targetLevel !== undefined && c.level >= targetLevel) return;
+
+    if (!groups[c.level]) {
+      groups[c.level] = [];
+    }
+    groups[c.level].push(c);
+  });
+
+  const levels = Object.keys(groups).map(Number).sort((a, b) => a - b);
+  
+  if (levels.length === 0) {
+    const emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.textContent = targetLevel <= 1 
+      ? 'No aplica prerrequisitos para Semestre 1' 
+      : 'No hay materias registradas en semestres anteriores';
+    emptyOpt.disabled = true;
+    selectElement.appendChild(emptyOpt);
+    return 0;
+  }
+
+  levels.forEach(lvl => {
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = `── Semestre ${lvl} ──`;
+    groups[lvl].forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = `${c.code} — ${c.name} (${c.credits} cr)`;
+      if (selectedIds.includes(c.id) || selectedIds.includes(String(c.id))) {
+        opt.selected = true;
+      }
+      optgroup.appendChild(opt);
+    });
+    selectElement.appendChild(optgroup);
+  });
+
+  return levels.length;
+}
+
+// Filtrar select de prerrequisitos en modales al cambiar el input de nivel
+function filterModalPrereqs(mode) {
+  const levelInput = document.getElementById(`${mode}_level`);
+  const prereqSelect = document.getElementById(`${mode}_prerequisites`);
+  const hintSpan = document.getElementById(`${mode}_prereq_hint`);
+  const targetLevel = parseInt(levelInput.value, 10) || 1;
+  const excludeId = mode === 'edit' ? parseInt(document.getElementById('edit_course_id').value, 10) : null;
+
+  const currentSelected = Array.from(prereqSelect.selectedOptions).map(o => parseInt(o.value, 10));
+
+  populatePrereqsSelect(prereqSelect, targetLevel, excludeId, currentSelected);
+  if (hintSpan) {
+    if (targetLevel <= 1) {
+      hintSpan.textContent = 'Semestre 1: Sin prerrequisitos';
+    } else {
+      hintSpan.textContent = `Materias de Semestres 1 al ${targetLevel - 1}`;
+    }
+  }
+}
+
+// Mostrar detalle en el panel del Grafo y Reglas de Precedencia
+function showCourseDetail(id, code, name, credits, level, program, programId) {
+  let course = coursesData.find(c => c.id === id);
+  if (!course) {
+    const cat = allCatalogCourses.find(c => c.id === id);
+    if (cat) {
+      course = {
+        id: cat.id,
+        code: cat.code,
+        name: cat.name,
+        credits: cat.credits,
+        level: cat.level,
+        program_id: cat.program_id,
+        program_name: cat.program_name,
+        prerequisites: [],
+        dependents: []
+      };
+    }
+  }
+  if (!course) return;
+
+  currentSelectedCourse = course;
+  selectedCourseId = id;
+
+  // Resaltar fila seleccionada en la tabla
+  document.querySelectorAll('.course-row').forEach(row => {
+    row.classList.remove('bg-secondary-fixed/40', 'border-l-4', 'border-secondary');
+  });
+  const activeRow = document.getElementById(`row-course-${id}`);
+  if (activeRow) {
+    activeRow.classList.add('bg-secondary-fixed/40', 'border-l-4', 'border-secondary');
+  }
+
+  document.getElementById('panel-empty').classList.add('hidden');
+  document.getElementById('panel-content').classList.remove('hidden');
+
+  document.getElementById('panel-title').textContent = name;
+  document.getElementById('panel-course-code-badge').textContent = code;
+  document.getElementById('panel-meta-program').textContent = program || course.program_name || 'Sin programa';
+  document.getElementById('panel-meta-credits').textContent = credits + ' créditos';
+  document.getElementById('panel-meta-level').textContent = 'Semestre ' + level;
+
+  // Renderizar Diagrama Visual de Nodos
+  renderVisualGraph(course);
+
+  // Renderizar Lista de Prerrequisitos requeridos (con botón de eliminar)
+  renderPrereqsList(course);
+
+  // Actualizar el selector de añadir prerrequisito en el panel
+  updatePanelAddPrereqSelector(course);
+
+  // Renderizar Dependientes (Materias que desbloquea)
+  renderDependentsList(course);
+}
+
+// Renderizar diagrama visual tipo flujo vertical limpio y anti-overflow
+function renderVisualGraph(course) {
+  const inputsContainer = document.getElementById('graph-inputs');
+  const inputsBadge = document.getElementById('graph-inputs-badge');
+  const currentNode = document.getElementById('graph-current-node');
+  const currentLevel = document.getElementById('graph-current-level');
+  const outputsContainer = document.getElementById('graph-outputs');
+  const outputsBadge = document.getElementById('graph-outputs-badge');
+
+  currentLevel.textContent = `Semestre ${course.level}`;
+  currentNode.innerHTML = `
+    <span class="inline-block px-2 py-0.5 rounded bg-secondary text-surface-container-lowest font-code-sm text-code-sm font-bold mr-1.5">${course.code}</span>
+    <span>${course.name}</span>
+  `;
+
+  // Prerrequisitos previos
+  inputsContainer.innerHTML = '';
+  const prereqs = course.prerequisites || [];
+  inputsBadge.textContent = `${prereqs.length} requerida${prereqs.length === 1 ? '' : 's'}`;
+
+  if (prereqs.length > 0) {
+    prereqs.forEach(p => {
+      inputsContainer.innerHTML += `
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container text-body-sm font-body-sm border border-outline-variant/40 text-on-surface" title="${p.name} (Semestre ${p.level})">
+          <span class="font-code-sm text-code-sm font-bold">${p.code}</span>
+          <span class="text-label-sm font-label-sm text-outline">Sem. ${p.level}</span>
+        </span>
+      `;
+    });
+  } else {
+    inputsContainer.innerHTML = `<span class="text-label-sm font-label-sm text-outline italic py-0.5">Ninguna materia previa (ciclo inicial o libre)</span>`;
+  }
+
+  // Dependientes
+  outputsContainer.innerHTML = '';
+  const dependents = course.dependents || [];
+  outputsBadge.textContent = `${dependents.length} materia${dependents.length === 1 ? '' : 's'}`;
+
+  if (dependents.length > 0) {
+    dependents.forEach(d => {
+      outputsContainer.innerHTML += `
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container text-body-sm font-body-sm border border-outline-variant/40 text-on-surface" title="${d.name} (Semestre ${d.level})">
+          <span class="font-code-sm text-code-sm font-bold">${d.code}</span>
+          <span class="text-label-sm font-label-sm text-secondary font-semibold">Sem. ${d.level}</span>
+        </span>
+      `;
+    });
+  } else {
+    outputsContainer.innerHTML = `<span class="text-label-sm font-label-sm text-outline italic py-0.5">Ninguna materia requiere a esta actualmente</span>`;
+  }
+}
+
+// Renderizar lista interactiva de prerrequisitos en el panel
+function renderPrereqsList(course) {
+  const container = document.getElementById('panel-prereqs');
+  const countSpan = document.getElementById('panel-prereqs-count');
+  container.innerHTML = '';
+  const prereqs = course.prerequisites || [];
+  countSpan.textContent = prereqs.length;
+
+  if (prereqs.length === 0) {
+    container.innerHTML = `
+      <div class="p-3 rounded-lg border border-dashed border-outline-variant/60 text-center text-outline text-body-sm font-body-sm">
+        No tiene prerrequisitos asignados actualmente.
+      </div>
+    `;
+    return;
+  }
+
+  prereqs.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'flex items-center justify-between p-2.5 rounded-lg border border-outline-variant/60 bg-surface-container-low/40 hover:bg-surface-container-low transition-colors group min-w-0';
+    item.innerHTML = `
+      <div class="flex items-center gap-2.5 min-w-0 flex-1">
+        <span class="px-2 py-0.5 rounded bg-surface-container-lowest font-code-sm text-code-sm font-bold text-on-surface border border-outline-variant/40 shrink-0">${p.code}</span>
+        <div class="flex flex-col min-w-0 flex-1">
+          <span class="text-label-md font-label-md text-on-surface font-medium truncate">${p.name}</span>
+          <span class="text-label-sm font-label-sm text-outline">Semestre ${p.level} • ${p.credits || 3} créditos</span>
+        </div>
+      </div>
+      <button type="button" onclick="handleRemovePrerequisiteFromPanel(${course.id}, ${p.id}, '${p.code}')"
+              class="p-1.5 rounded-lg text-outline hover:text-error hover:bg-error-container/30 transition-colors cursor-pointer shrink-0 ml-2"
+              title="Desvincular prerrequisito ${p.code}">
+        <span class="material-symbols-outlined text-[18px]">delete</span>
+      </button>
+    `;
+    container.appendChild(item);
+  });
+}
+
+// Actualizar selector de nuevo prerrequisito en el panel con filtrado por semestres menores
+function updatePanelAddPrereqSelector(course) {
+  const select = document.getElementById('select-new-prereq');
+  const formBox = document.getElementById('add-prereq-form-content');
+  const notAvailBox = document.getElementById('add-prereq-not-available');
+  const hintSpan = document.getElementById('add-prereq-hint');
+
+  if (course.level <= 1) {
+    formBox.classList.add('hidden');
+    notAvailBox.classList.remove('hidden');
+    return;
+  }
+
+  formBox.classList.remove('hidden');
+  notAvailBox.classList.add('hidden');
+
+  select.innerHTML = '<option value="">Selecciona una materia previa...</option>';
+
+  const assignedIds = (course.prerequisites || []).map(p => p.id);
+
+  const groups = {};
+  allCatalogCourses.forEach(c => {
+    // Restricciones:
+    // 1. No la misma materia
+    if (c.id === course.id) return;
+    // 2. Semestre estrictamente menor (< course.level)
+    if (c.level >= course.level) return;
+    // 3. Que no esté ya asignada
+    if (assignedIds.includes(c.id)) return;
+
+    if (!groups[c.level]) groups[c.level] = [];
+    groups[c.level].push(c);
+  });
+
+  const levels = Object.keys(groups).map(Number).sort((a, b) => a - b);
+  let totalCandidates = 0;
+
+  levels.forEach(lvl => {
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = `── Semestre ${lvl} ──`;
+    groups[lvl].forEach(c => {
+      totalCandidates++;
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = `${c.code} — ${c.name} (${c.credits} cr)`;
+      optgroup.appendChild(opt);
+    });
+    select.appendChild(optgroup);
+  });
+
+  if (totalCandidates === 0) {
+    const emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.textContent = 'Todas las materias de semestres anteriores ya están vinculadas';
+    emptyOpt.disabled = true;
+    select.appendChild(emptyOpt);
+    document.getElementById('btn-add-prereq').disabled = true;
+    hintSpan.textContent = 'Sin candidatos';
+  } else {
+    document.getElementById('btn-add-prereq').disabled = false;
+    hintSpan.textContent = `${totalCandidates} materias previas disponibles`;
+  }
+}
+
+// Renderizar dependientes en el panel
+function renderDependentsList(course) {
+  const container = document.getElementById('panel-dependents');
+  const countSpan = document.getElementById('panel-dependents-count');
+  container.innerHTML = '';
+  const dependents = course.dependents || [];
+  countSpan.textContent = dependents.length;
+
+  if (dependents.length === 0) {
+    container.innerHTML = '<p class="text-body-sm font-body-sm text-outline italic">Ninguna materia requiere a esta actualmente como prerrequisito.</p>';
+    return;
+  }
+
+  dependents.forEach(d => {
+    container.innerHTML += `
+      <div class="flex items-center justify-between text-body-sm font-body-sm py-1 border-b border-outline-variant/20 last:border-0 min-w-0">
+        <div class="flex items-center gap-2 truncate flex-1 min-w-0">
+          <span class="font-code-sm text-code-sm font-semibold text-on-surface bg-surface-container px-1.5 py-0.2 rounded shrink-0">${d.code}</span>
+          <span class="text-on-surface truncate">${d.name}</span>
+        </div>
+        <span class="text-label-sm font-label-sm bg-secondary-fixed/50 text-secondary px-2 py-0.5 rounded-full font-semibold shrink-0 ml-2">Sem. ${d.level}</span>
+      </div>
+    `;
+  });
+}
+
+// Helper CSRF
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+// Acción: Agregar prerrequisito desde el panel mediante Fetch
+async function handleAddPrerequisiteFromPanel() {
+  if (!currentSelectedCourse) return;
+  const select = document.getElementById('select-new-prereq');
+  const requiredCourseId = select.value;
+  if (!requiredCourseId) {
+    alert('Por favor selecciona una materia previa para vincular.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-add-prereq');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span>`;
+
+  const formData = new FormData();
+  formData.append('action', 'add_prerequisite');
+  formData.append('course_id', currentSelectedCourse.id);
+  formData.append('required_course_id', requiredCourseId);
+
+  try {
+    const response = await fetch("{% url 'admin_panel:courses' %}", {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: formData
+    });
+
+    const data = await response.json();
+    if (response.ok && data.success) {
+      if (!currentSelectedCourse.prerequisites) currentSelectedCourse.prerequisites = [];
+      currentSelectedCourse.prerequisites.push(data.prerequisite);
+
+      updateTableBadges(currentSelectedCourse.id, currentSelectedCourse.prerequisites);
+      renderVisualGraph(currentSelectedCourse);
+      renderPrereqsList(currentSelectedCourse);
+      updatePanelAddPrereqSelector(currentSelectedCourse);
+    } else {
+      alert(data.message || 'Error al vincular prerrequisito.');
+    }
+  } catch (err) {
+    console.error('Error adding prereq:', err);
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "{% url 'admin_panel:courses' %}";
+    form.innerHTML = `
+      <input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken')}">
+      <input type="hidden" name="action" value="add_prerequisite">
+      <input type="hidden" name="course_id" value="${currentSelectedCourse.id}">
+      <input type="hidden" name="required_course_id" value="${requiredCourseId}">
+    `;
+    document.body.appendChild(form);
+    form.submit();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<span class="material-symbols-outlined text-[16px]">link</span> Vincular`;
+  }
+}
+
+// Acción: Eliminar prerrequisito desde el panel mediante Fetch
+async function handleRemovePrerequisiteFromPanel(courseId, requiredCourseId, prereqCode) {
+  if (!confirm(`¿Desvincular a "${prereqCode}" como prerrequisito?`)) return;
+
+  const formData = new FormData();
+  formData.append('action', 'remove_prerequisite');
+  formData.append('course_id', courseId);
+  formData.append('required_course_id', requiredCourseId);
+
+  try {
+    const response = await fetch("{% url 'admin_panel:courses' %}", {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: formData
+    });
+
+    const data = await response.json();
+    if (response.ok && data.success) {
+      if (currentSelectedCourse && currentSelectedCourse.id === courseId) {
+        currentSelectedCourse.prerequisites = (currentSelectedCourse.prerequisites || []).filter(p => p.id !== requiredCourseId);
+        updateTableBadges(courseId, currentSelectedCourse.prerequisites);
+        renderVisualGraph(currentSelectedCourse);
+        renderPrereqsList(currentSelectedCourse);
+        updatePanelAddPrereqSelector(currentSelectedCourse);
+      }
+    } else {
+      alert(data.message || 'Error al eliminar prerrequisito.');
+    }
+  } catch (err) {
+    console.error('Error removing prereq:', err);
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "{% url 'admin_panel:courses' %}";
+    form.innerHTML = `
+      <input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken')}">
+      <input type="hidden" name="action" value="remove_prerequisite">
+      <input type="hidden" name="course_id" value="${courseId}">
+      <input type="hidden" name="required_course_id" value="${requiredCourseId}">
+    `;
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+
+// Actualizar badges de la tabla
+function updateTableBadges(courseId, prerequisites) {
+  const container = document.getElementById(`prereq-badges-${courseId}`);
+  if (!container) return;
+  container.innerHTML = '';
+  if (!prerequisites || prerequisites.length === 0) {
+    container.innerHTML = '<span class="text-label-sm font-label-sm text-outline italic">Sin prerrequisitos</span>';
+    return;
+  }
+  prerequisites.forEach(p => {
+    container.innerHTML += `
+      <span class="px-1.5 py-0.5 rounded text-code-sm font-code-sm bg-surface-container-lowest border border-outline-variant/50 text-on-surface" title="${p.name} (Semestre ${p.level})">
+        ${p.code}
+      </span>
+    `;
+  });
+}
+
+// Abrir modal de creación preconfigurado para un semestre
+function openCreateCourseForSemester(sem) {
+  const semVal = (sem && sem !== 'all') ? sem : 1;
+  document.getElementById('create_level').value = semVal;
+  filterModalPrereqs('create');
+  document.getElementById('modal-crear-materia').classList.remove('hidden');
+}
+
+// Abrir modal de edición
+function openEditCourse(id, code, name, credits, level, description, color, programId) {
+  document.getElementById('edit_course_id').value = id;
+  document.getElementById('edit_code').value = code;
+  document.getElementById('edit_name').value = name;
+  document.getElementById('edit_credits').value = credits;
+  document.getElementById('edit_level').value = level;
+  document.getElementById('edit_description').value = description;
+
+  const progSelect = document.getElementById('edit_program_id');
+  for (let opt of progSelect.options) {
+    opt.selected = (opt.value === String(programId));
+  }
+
+  const course = coursesData.find(c => c.id === id) || allCatalogCourses.find(c => c.id === id);
+  const prereqIds = (course && course.prerequisites) ? course.prerequisites.map(p => p.id) : [];
+
+  const prereqSelect = document.getElementById('edit_prerequisites');
+  populatePrereqsSelect(prereqSelect, level, id, prereqIds);
+  document.getElementById('edit_prereq_hint').textContent = `Materias de Semestres 1 al ${level - 1}`;
+
+  document.getElementById('modal-editar-materia').classList.remove('hidden');
+}
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', () => {
+  filterModalPrereqs('create');
+
+  if (selectedCourseId) {
+    const course = coursesData.find(c => c.id === selectedCourseId);
+    if (course) {
+      showCourseDetail(course.id, course.code, course.name, course.credits, course.level, course.program_name, course.program_id);
+    }
+  } else if (coursesData.length > 0) {
+    const firstCourse = coursesData[0];
+    showCourseDetail(firstCourse.id, firstCourse.code, firstCourse.name, firstCourse.credits, firstCourse.level, firstCourse.program_name, firstCourse.program_id);
+  }
+
+  ['modal-crear-materia', 'modal-editar-materia'].forEach(id => {
+    const modal = document.getElementById(id);
+    if (modal) {
+      modal.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.add('hidden');
+      });
+    }
+  });
+});
+</script>
+{% endblock %}

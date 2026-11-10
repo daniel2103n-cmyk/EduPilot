@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="h-full bg-surface text-on-surface antialiased flex min-h-screen overflow-x-hidden">
+  <!-- Sidebar de Estudiante -->
+  {% include 'includes/student_sidebar.html' %}
+
+  <!-- Contenedor Principal (con margen izquierdo para el sidebar en desktop) -->
+  <div class="flex-1 ml-0 md:ml-64 flex flex-col min-h-screen w-full transition-all duration-300">
+    <!-- Navbar de Estudiante -->
+    {% include 'includes/student_navbar.html' %}
+
+    <!-- Contenido específico de cada vista de estudiante -->
+    <main class="flex-1 w-full bg-surface overflow-y-auto">
+      {% block student_content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endblock %}

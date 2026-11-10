@@ -26,32 +26,53 @@ User = get_user_model()
 def login_view(request):
     """
     GET  → Muestra el formulario de login.
-    POST → Autentica y redirige según rol.
+    POST → Autentica y redirige según rol (ADMIN o STUDENT).
     """
     # Si ya está autenticado, redirigir según su rol
     if request.user.is_authenticated:
         return _redirect_by_role(request.user)
 
-    if request.method == 'POST':
-        username_input = request.POST.get('username') or request.POST.get('email')
-        password = request.POST.get('password')
-        
-        # Permitir login con correo
-        if username_input and '@' in username_input:
-            user_obj = User.objects.filter(email=username_input).first()
-            if user_obj:
-                username_input = user_obj.username
+    next_url = request.POST.get('next') or request.GET.get('next') or ''
 
-        user = authenticate(request, username=username_input, password=password)
+    if request.method == 'POST':
+        username_input = (request.POST.get('username') or request.POST.get('email') or '').strip()
+        password = request.POST.get('password') or ''
+
+        user = None
+        if username_input and password:
+            # 1. Buscar coincidencia por correo insensible a mayúsculas/minúsculas
+            user_obj = User.objects.filter(email__iexact=username_input).first()
+
+            # 2. Si no coincide con correo, buscar por username insensible a mayúsculas/minúsculas
+            if not user_obj:
+                user_obj = User.objects.filter(username__iexact=username_input).first()
+
+            auth_username = user_obj.username if user_obj else username_input
+            user = authenticate(request, username=auth_username, password=password)
 
         if user is not None:
-            login(request, user)
-            return _redirect_by_role(user)
+            if not user.is_active:
+                messages.error(request, 'Tu cuenta está desactivada. Consulta con administración.')
+            else:
+                login(request, user)
+                messages.success(request, f'¡Bienvenido, {user.first_name or user.username}!')
+
+                # Redirección segura si venía con parámetro 'next'
+                if next_url and next_url.startswith('/') and not next_url.startswith('//'):
+                    is_admin_user = user.is_superuser or (hasattr(user, 'role') and user.role == 'ADMIN')
+                    if next_url.startswith('/admin/') and not is_admin_user:
+                        return redirect('student:dashboard')
+                    if next_url.startswith('/student/') and is_admin_user and not hasattr(user, 'studentprofile'):
+                        return redirect('admin_panel:dashboard')
+                    return redirect(next_url)
+
+                return _redirect_by_role(user)
         else:
-            messages.error(request, 'Credenciales incorrectas. Intenta de nuevo.')
+            messages.error(request, 'Credenciales incorrectas. Verifica tu usuario/correo y contraseña.')
 
     context = {
         'page_title': 'Iniciar Sesión — EduPilot',
+        'next': next_url,
     }
     return render(request, 'auth/login.html', context)
 

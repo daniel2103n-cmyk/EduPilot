@@ -1,426 +1,1173 @@
-{% extends 'base.html' %}
+{% extends 'base_student.html' %}
+
 {% block page_title %}Mis Materias — EduPilot{% endblock %}
-{% block body_class %}flex{% endblock %}
-{% block content %}
 
-<!-- ════════════════════ SIDEBAR ════════════════════ -->
-<aside class="hidden md:flex flex-col h-full p-md gap-base bg-surface/80 backdrop-blur-md border-r border-outline-variant/30 fixed left-0 top-0 w-64 z-40 shadow-sm">
-  <!-- Brand -->
-  <div class="mb-lg px-xs mt-xs">
-    <div class="flex items-center gap-sm mb-xs">
-      <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-primary-fixed flex items-center justify-center flex-shrink-0 shadow-soft">
-        <span class="material-symbols-outlined text-on-primary text-xl">school</span>
+{% block student_content %}
+<main class="flex-1 p-6 space-y-6 max-w-[1600px] w-full mx-auto">
+
+  <!-- ===================================================================== -->
+  <!-- 1. Page Header: Title, subtitle & Segmented View Switch               -->
+  <!-- ===================================================================== -->
+  <section class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-outline-variant/40">
+    <div>
+      <div class="flex items-center gap-2.5">
+        <h1 class="text-headline-lg font-headline-lg text-on-surface tracking-tight font-bold">Materias y plan de estudios</h1>
+        <span class="px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-container-highest text-secondary font-semibold border border-outline-variant/60">
+          {{ profile.program.name|default:"Programa Activo" }}
+        </span>
       </div>
-      <h2 class="text-headline-md font-headline-md font-bold text-primary tracking-tight">EduPilot</h2>
-    </div>
-    <p class="font-body-sm text-body-sm text-on-surface-variant font-medium bg-surface-container-lowest/50 px-2 py-1 rounded-lg inline-block border border-outline-variant/20">
-      {{ request.user.studentprofile.program|default:"Mi programa" }}
-    </p>
-  </div>
-  
-  <!-- Nav -->
-  <nav class="flex-1 flex flex-col gap-xs mt-sm">
-    <a class="flex items-center gap-base px-md py-sm rounded-xl transition-all duration-300 {% if active_nav == 'dashboard' %}bg-primary text-on-primary shadow-soft translate-x-1{% else %}text-on-surface-variant hover:bg-surface-container hover:text-primary{% endif %}"
-       href="{% url 'student:dashboard' %}">
-      <span class="material-symbols-outlined" {% if active_nav == 'dashboard' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>space_dashboard</span>
-      <span class="font-label-md text-label-md">Dashboard</span>
-    </a>
-    <a class="flex items-center gap-base px-md py-sm rounded-xl transition-all duration-300 {% if active_nav == 'courses' %}bg-primary text-on-primary shadow-soft translate-x-1{% else %}text-on-surface-variant hover:bg-surface-container hover:text-primary{% endif %}"
-       href="{% url 'student:courses' %}">
-      <span class="material-symbols-outlined" {% if active_nav == 'courses' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>auto_stories</span>
-      <span class="font-label-md text-label-md">Materias</span>
-    </a>
-    <a class="flex items-center gap-base px-md py-sm rounded-xl transition-all duration-300 {% if active_nav == 'routes' %}bg-primary text-on-primary shadow-soft translate-x-1{% else %}text-on-surface-variant hover:bg-surface-container hover:text-primary{% endif %}"
-       href="{% url 'student:routes' %}">
-      <span class="material-symbols-outlined" {% if active_nav == 'routes' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>route</span>
-      <span class="font-label-md text-label-md">Rutas Académicas</span>
-    </a>
-  </nav>
-
-  <!-- Bottom Profile -->
-  <div class="mt-auto border-t border-outline-variant/30 pt-md flex flex-col gap-xs">
-    <div class="flex items-center gap-sm p-sm rounded-xl bg-surface-container-lowest/50 border border-outline-variant/20 shadow-sm mb-xs group">
-      <div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-md shadow-inner group-hover:scale-105 transition-transform">
-        {{ request.user.first_name.0|upper|default:"U" }}
-      </div>
-      <div class="flex-1 min-w-0">
-        <p class="font-label-md text-label-md text-on-surface truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
-        <p class="font-label-sm text-label-sm text-primary">Semestre {{ request.user.studentprofile.current_semester|default:"—" }}</p>
-      </div>
-    </div>
-    <a href="{% url 'authentication:logout' %}" class="flex items-center justify-center gap-2 px-md py-sm text-error hover:bg-error-container hover:text-on-error-container rounded-xl transition-colors font-label-md text-label-md border border-transparent hover:border-error/20">
-      <span class="material-symbols-outlined text-[18px]">logout</span>
-      Cerrar sesión
-    </a>
-  </div>
-</aside>
-
-<!-- ════════════════════ MAIN ════════════════════ -->
-<main class="flex-1 md:ml-64 flex flex-col min-h-screen">
-
-  <!-- Content -->
-  <div class="p-gutter md:p-margin max-w-7xl mx-auto w-full flex-1 mt-md">
-
-    <!-- Breadcrumb -->
-    <nav class="flex items-center gap-xs mb-lg">
-      <a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors"
-         href="{% url 'student:dashboard' %}">Inicio</a>
-      <span class="material-symbols-outlined text-on-surface-variant text-[16px]">chevron_right</span>
-      <span class="font-label-md text-label-md text-primary">Mis Materias</span>
-    </nav>
-
-    <!-- Page Header -->
-    <div class="mb-xl flex flex-col md:flex-row md:items-end justify-between gap-md">
-      <div>
-        <h1 class="font-headline-lg text-headline-lg text-on-surface mb-xs">Mis Materias</h1>
-        <p class="font-body-md text-body-md text-on-surface-variant">
-          Plan de estudios de <strong>{{ profile.program|default:"tu programa" }}</strong> — Semestre {{ profile.current_semester|default:"?" }}
-        </p>
-      </div>
-    </div>
-
-    {% if academic_summary.has_lost_student_status %}
-    <div class="mb-lg p-md rounded-xl bg-error-container text-on-error-container flex items-start gap-md soft-shadow border border-error">
-      <span class="material-symbols-outlined text-error text-[28px]">warning</span>
-      <div>
-        <h3 class="font-headline-sm text-headline-sm font-bold text-error">Pérdida de Calidad de Estudiante</h3>
-        <p class="font-body-md text-body-md mt-xs">Has superado el límite de intentos reprobados en una materia o tu promedio acumulado es inferior a 3.2. Tu caso será revisado por la administración.</p>
-      </div>
-    </div>
-    {% endif %}
-
-    {% if messages %}
-    <div class="mb-xl flex flex-col gap-sm">
-      {% for message in messages %}
-      <div class="p-sm rounded-lg font-label-md text-label-md shadow-sm {% if message.tags == 'success' %}bg-secondary-container text-on-secondary-container{% else %}bg-surface-container-high text-on-surface{% endif %}">
-        {{ message }}
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    {% if counts.total == 0 %}
-    <!-- Estado vacío -->
-    <div class="flex flex-col items-center gap-md py-xl text-center bg-surface-container-lowest rounded-xl soft-shadow p-xl">
-      <span class="material-symbols-outlined text-[80px] text-primary opacity-20">auto_stories</span>
-      <p class="font-headline-md text-headline-md text-on-surface">No hay materias configuradas</p>
-      <p class="font-body-md text-body-md text-on-surface-variant max-w-md">
-        El administrador aún no ha configurado las materias de tu programa académico.
+      <p class="text-body-md font-body-md text-on-surface-variant mt-0.5">
+        Explora las asignaturas de tu programa, consulta prerrequisitos y descubre cuáles tienes habilitadas para cursar
       </p>
-      <a href="{% url 'student:dashboard' %}"
-         class="bg-primary text-on-primary font-label-md text-label-md px-lg py-sm rounded-lg hover:bg-on-primary-fixed-variant transition-colors">
-        Volver al dashboard
-      </a>
     </div>
 
-    {% else %}
+    <!-- Segmented Toggle Control -->
+    <div class="inline-flex p-1 bg-surface-container rounded-lg border border-outline-variant/60 shadow-inner">
+      <button id="btn-view-table"
+              type="button"
+              onclick="switchView('table')"
+              class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-surface-container-lowest text-secondary shadow-sm text-label-md font-label-md font-semibold transition-all">
+        <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">table_chart</span>
+        <span>Tabla</span>
+      </button>
+      <button id="btn-view-malla"
+              type="button"
+              onclick="switchView('malla')"
+              class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface text-label-md font-label-md font-medium transition-all"
+              title="Ver representación en cuadrícula curricular">
+        <span class="material-symbols-outlined text-[18px]">grid_view</span>
+        <span>Malla curricular</span>
+      </button>
+    </div>
+  </section>
 
-    <!-- ── Resumen de contadores ──────────────────────────────────────── -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-md mb-xl">
-
-      <!-- En curso -->
-      <div class="bg-surface-container-lowest rounded-xl p-md soft-shadow flex items-center gap-md">
-        <div class="w-10 h-10 rounded-full bg-tertiary-fixed flex items-center justify-center flex-shrink-0">
-          <span class="material-symbols-outlined text-tertiary text-[20px]">pending_actions</span>
-        </div>
-        <div>
-          <p class="font-headline-lg text-headline-lg text-on-surface leading-none">{{ counts.in_progress }}</p>
-          <p class="font-label-sm text-label-sm text-on-surface-variant mt-[2px]">En curso</p>
-        </div>
+  <!-- ===================================================================== -->
+  <!-- 2. Resumen KPIs (Analytics Cards con Datos Reales)                     -->
+  <!-- ===================================================================== -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- KPI 1: Total de materias -->
+    <div class="bg-surface-container-lowest border border-outline-variant/70 rounded-xl p-4 shadow-sm relative overflow-hidden flex flex-col justify-between">
+      <div class="flex items-center justify-between text-on-surface-variant">
+        <span class="text-label-md font-label-md font-medium">Total de materias</span>
+        <span class="material-symbols-outlined text-outline" data-icon="library_books">library_books</span>
       </div>
-
-      <!-- Aprobadas -->
-      <div class="bg-surface-container-lowest rounded-xl p-md soft-shadow flex items-center gap-md">
-        <div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
-          <span class="material-symbols-outlined text-secondary text-[20px]">check_circle</span>
-        </div>
-        <div>
-          <p class="font-headline-lg text-headline-lg text-on-surface leading-none">{{ counts.passed }}</p>
-          <p class="font-label-sm text-label-sm text-on-surface-variant mt-[2px]">Aprobadas</p>
-        </div>
+      <div class="mt-2 flex items-baseline gap-2">
+        <span class="text-headline-xl font-headline-xl text-on-surface font-bold">{{ kpis.total_courses }}</span>
+        <span class="text-body-sm font-body-sm text-on-surface-variant">materias</span>
       </div>
-
-      <!-- Reprobadas -->
-      <div class="bg-surface-container-lowest rounded-xl p-md soft-shadow flex items-center gap-md">
-        <div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center flex-shrink-0">
-          <span class="material-symbols-outlined text-error text-[20px]">cancel</span>
-        </div>
-        <div>
-          <p class="font-headline-lg text-headline-lg text-on-surface leading-none">{{ counts.failed }}</p>
-          <p class="font-label-sm text-label-sm text-on-surface-variant mt-[2px]">Reprobadas</p>
-        </div>
+      <div class="mt-2 text-label-sm font-label-sm text-on-surface-variant font-code-sm">
+        {{ kpis.total_credits }} créditos totales del plan
       </div>
-
-      <!-- Créditos aprobados -->
-      <div class="bg-surface-container-lowest rounded-xl p-md soft-shadow flex items-center gap-md">
-        <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center flex-shrink-0">
-          <span class="material-symbols-outlined text-primary text-[20px]">toll</span>
-        </div>
-        <div>
-          <p class="font-headline-lg text-headline-lg text-on-surface leading-none">{{ counts.credits_approved }}</p>
-          <p class="font-label-sm text-label-sm text-on-surface-variant mt-[2px]">Créditos aprobados</p>
-        </div>
+      <div class="w-full bg-surface-container h-1.5 rounded-full mt-3 overflow-hidden">
+        <div class="bg-secondary h-full w-full"></div>
       </div>
-
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!-- SEMESTRES                                                          -->
-    <!-- ══════════════════════════════════════════════════════════════════ -->
-    {% for sem in sorted_semesters %}
-    <section class="mb-xl" id="section-semester-{{ sem.level }}">
-      <button onclick="toggleSection('semester-{{ sem.level }}')"
-              class="w-full flex items-center justify-between p-md bg-surface-container rounded-xl mb-md hover:brightness-95 transition-all shadow-sm">
-        <div class="flex items-center gap-md">
-          <div class="w-9 h-9 rounded-full bg-primary flex items-center justify-center">
-            <span class="font-headline-sm text-headline-sm text-on-primary font-bold">{{ sem.level }}</span>
-          </div>
-          <div class="text-left">
-            <h2 class="font-headline-md text-headline-md text-on-surface">Semestre {{ sem.level }}</h2>
-            <p class="font-label-sm text-label-sm text-on-surface-variant">
-              {{ sem.courses|length }} materia{{ sem.courses|length|pluralize:"s" }}
-              {% if sem.has_grades %} <span class="mx-1">•</span> Promedio: <strong>{{ sem.average|floatformat:1 }}</strong>{% endif %}
-            </p>
-          </div>
-        </div>
-        <span id="chevron-semester-{{ sem.level }}" class="material-symbols-outlined text-on-surface-variant transition-transform duration-200">expand_less</span>
-      </button>
+    <!-- KPI 2: Materias aprobadas -->
+    <div class="bg-surface-container-lowest border border-outline-variant/70 rounded-xl p-4 shadow-sm relative overflow-hidden flex flex-col justify-between">
+      <div class="flex items-center justify-between text-on-surface-variant">
+        <span class="text-label-md font-label-md font-medium">Materias aprobadas</span>
+        <span class="material-symbols-outlined text-emerald-600" data-icon="check_circle">check_circle</span>
+      </div>
+      <div class="mt-2 flex items-baseline gap-2">
+        <span class="text-headline-xl font-headline-xl text-on-surface font-bold">{{ kpis.courses_passed }}</span>
+        <span class="text-body-sm font-body-sm text-on-surface-variant">materias</span>
+      </div>
+      <div class="mt-2 flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant">
+        <span class="font-code-sm text-emerald-700 font-medium">{{ kpis.credits_approved }} créditos acumulados</span>
+        <span class="font-semibold text-on-surface">{{ kpis.passed_pct }}%</span>
+      </div>
+      <div class="w-full bg-surface-container h-1.5 rounded-full mt-3 overflow-hidden">
+        <div class="bg-emerald-500 h-full transition-all duration-500" style="width: {{ kpis.passed_pct }}%;"></div>
+      </div>
+    </div>
 
-      <div id="body-semester-{{ sem.level }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md transition-all">
-        {% for item in sem.courses %}
-        <div class="bg-surface-container-lowest rounded-xl soft-shadow p-md border-l-4 hover:shadow-md transition-shadow
-          {% if item.status == 'PASSED' %}border-secondary
-          {% elif item.status == 'FAILED' %}border-error
-          {% elif item.status == 'IN_PROGRESS' %}border-tertiary
-          {% else %}border-outline-variant opacity-80 hover:opacity-100{% endif %}">
-          
-          <div class="flex items-start justify-between mb-sm">
-            <div class="flex-1 min-w-0">
-              <span class="inline-block px-2 py-[2px] rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm mb-xs">
-                {{ item.course.code }}
-              </span>
-              <h3 class="font-label-md text-label-md text-on-surface leading-snug">{{ item.course.name }}</h3>
-            </div>
-            
-            {% if item.status == 'PASSED' and item.grade %}
-            <div class="ml-sm flex-shrink-0 text-right mr-sm">
-              <p class="font-headline-md text-headline-md text-secondary leading-none">{{ item.grade|floatformat:1 }}</p>
-              <p class="font-label-sm text-label-sm text-on-surface-variant">nota</p>
-            </div>
-            {% elif item.status == 'FAILED' and item.grade %}
-            <div class="ml-sm flex-shrink-0 text-right mr-sm">
-              <p class="font-headline-md text-headline-md text-error leading-none">{{ item.grade|floatformat:1 }}</p>
-              <p class="font-label-sm text-label-sm text-on-surface-variant">nota</p>
-            </div>
-            {% endif %}
+    <!-- KPI 3: Materias pendientes -->
+    <div class="bg-surface-container-lowest border border-outline-variant/70 rounded-xl p-4 shadow-sm relative overflow-hidden flex flex-col justify-between">
+      <div class="flex items-center justify-between text-on-surface-variant">
+        <span class="text-label-md font-label-md font-medium">Materias pendientes</span>
+        <span class="material-symbols-outlined text-secondary" data-icon="pending_actions">pending_actions</span>
+      </div>
+      <div class="mt-2 flex items-baseline gap-2">
+        <span class="text-headline-xl font-headline-xl text-on-surface font-bold">{{ kpis.courses_pending }}</span>
+        <span class="text-body-sm font-body-sm text-on-surface-variant">por cursar</span>
+      </div>
+      <div class="mt-2 text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1.5">
+        <span class="inline-block w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+        <span>{{ kpis.courses_in_progress }} en curso este periodo</span>
+      </div>
+      <div class="w-full bg-surface-container h-1.5 rounded-full mt-3 overflow-hidden">
+        <div class="bg-secondary-container h-full transition-all duration-500" style="width: {% if kpis.total_courses %}{% widthratio kpis.courses_pending kpis.total_courses 100 %}{% else %}0{% endif %}%;"></div>
+      </div>
+    </div>
 
-            <button onclick="openEditModal('{{ item.course.id }}', '{{ item.record_id|default:'' }}', '{{ item.status }}', '{{ item.grade|default:0.0|stringformat:'.1f' }}', '{{ item.semester_taken }}', '{{ item.course.name|escapejs }}')" 
-                    class="material-symbols-outlined text-[20px] ml-sm flex-shrink-0 mt-xs transition-colors hover:text-on-surface
-                    {% if item.status == 'PASSED' %}text-secondary
-                    {% elif item.status == 'FAILED' %}text-error
-                    {% elif item.status == 'IN_PROGRESS' %}text-tertiary
-                    {% else %}text-outline{% endif %}" title="Editar">edit</button>
-          </div>
-          
-          <div class="flex flex-wrap gap-sm mt-md pt-md border-t border-outline-variant">
-            <span class="flex items-center gap-xs font-label-sm text-label-sm text-on-surface-variant">
-              <span class="material-symbols-outlined text-[14px]">toll</span>{{ item.course.credits }} créditos
-            </span>
-            
-            <span class="ml-auto inline-flex items-center gap-xs px-sm py-[2px] rounded-full font-label-sm text-label-sm
-              {% if item.status == 'PASSED' %}bg-secondary-container text-on-secondary-container
-              {% elif item.status == 'FAILED' %}bg-error-container text-on-error-container
-              {% elif item.status == 'IN_PROGRESS' %}bg-tertiary-fixed text-on-tertiary-fixed
-              {% else %}bg-surface-container-high text-on-surface-variant{% endif %}">
-              
-              <span class="w-2 h-2 rounded-full
-                {% if item.status == 'PASSED' %}bg-secondary
-                {% elif item.status == 'FAILED' %}bg-error
-                {% elif item.status == 'IN_PROGRESS' %}bg-tertiary
-                {% else %}bg-outline{% endif %}"></span>
-              
-              {% if item.status == 'PASSED' %}Aprobada
-              {% elif item.status == 'FAILED' %}Reprobada
-              {% elif item.status == 'IN_PROGRESS' %}En curso
-              {% else %}Pendiente{% endif %}
-            </span>
-          </div>
+    <!-- KPI 4: Créditos restantes -->
+    <div class="bg-surface-container-lowest border border-outline-variant/70 rounded-xl p-4 shadow-sm relative overflow-hidden flex flex-col justify-between">
+      <div class="flex items-center justify-between text-on-surface-variant">
+        <span class="text-label-md font-label-md font-medium">Créditos restantes</span>
+        <span class="material-symbols-outlined text-secondary" data-icon="flag">flag</span>
+      </div>
+      <div class="mt-2 flex items-baseline gap-2">
+        <span class="text-headline-xl font-headline-xl text-secondary font-bold">{{ kpis.credits_remaining }}</span>
+        <span class="text-body-sm font-body-sm text-on-surface-variant">créditos</span>
+      </div>
+      <div class="mt-2 text-label-sm font-label-sm text-on-surface-variant flex items-center justify-between">
+        <span>Para titulación</span>
+        <span class="font-code-sm text-xs font-semibold px-2 py-0.5 rounded bg-surface-container text-on-surface">
+          {{ kpis.estimated_semesters }} semestres est.
+        </span>
+      </div>
+      <div class="w-full bg-surface-container h-1.5 rounded-full mt-3 overflow-hidden">
+        <div class="bg-secondary h-full transition-all duration-500" style="width: {% if kpis.total_credits %}{% widthratio kpis.credits_remaining kpis.total_credits 100 %}{% else %}0{% endif %}%;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 3. Barra de Herramientas, Filtros y Búsqueda                          -->
+  <!-- ===================================================================== -->
+  <section class="bg-surface-container-lowest border border-outline-variant/70 rounded-xl p-4 shadow-sm space-y-3">
+    <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+      <!-- Search input -->
+      <div class="relative flex-1 max-w-lg">
+        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-outline">
+          <span class="material-symbols-outlined" data-icon="search">search</span>
+        </span>
+        <input id="search-input"
+               class="w-full pl-10 pr-4 py-2 border border-outline-variant rounded-lg text-body-md font-body-md text-on-surface placeholder-outline focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary bg-surface-container-lowest"
+               placeholder="Buscar por nombre o código (ej. CAD, SIS, Álgebra)..."
+               type="text"
+               oninput="applyFilters()" />
+      </div>
+
+      <!-- Dropdown Filters Group -->
+      <div class="flex flex-wrap items-center gap-2.5">
+        <!-- Semestre filter -->
+        <div class="relative">
+          <select id="semester-filter"
+                  onchange="applyFilters()"
+                  class="appearance-none pl-3 pr-8 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-label-md font-label-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary cursor-pointer">
+            <option value="all">Semestre: Todos</option>
+            {% for lvl in semesters_levels %}
+            <option value="{{ lvl }}">Semestre {{ lvl }}</option>
+            {% endfor %}
+          </select>
+          <span class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-outline">
+            <span class="material-symbols-outlined text-sm" data-icon="keyboard_arrow_down">keyboard_arrow_down</span>
+          </span>
         </div>
-        {% endfor %}
+
+        <!-- Estado académico filter -->
+        <div class="relative">
+          <select id="status-filter"
+                  onchange="applyFilters()"
+                  class="appearance-none pl-3 pr-8 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-label-md font-label-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary cursor-pointer">
+            <option value="all">Estado: Todos los estados</option>
+            <option value="PASSED">Aprobada</option>
+            <option value="IN_PROGRESS">En curso</option>
+            <option value="AVAILABLE">Habilitada para cursar</option>
+            <option value="BLOCKED">Bloqueada / Prerrequisito</option>
+            <option value="FAILED">Reprobada</option>
+          </select>
+          <span class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-outline">
+            <span class="material-symbols-outlined text-sm" data-icon="keyboard_arrow_down">keyboard_arrow_down</span>
+          </span>
+        </div>
+
+        <!-- Créditos filter -->
+        <div class="relative">
+          <select id="credits-filter"
+                  onchange="applyFilters()"
+                  class="appearance-none pl-3 pr-8 py-2 border border-outline-variant rounded-lg bg-surface-container-lowest text-label-md font-label-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary cursor-pointer">
+            <option value="all">Créditos: Todos</option>
+            {% for cr in distinct_credits %}
+            <option value="{{ cr }}">{{ cr }} Créditos</option>
+            {% endfor %}
+          </select>
+          <span class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-outline">
+            <span class="material-symbols-outlined text-sm" data-icon="keyboard_arrow_down">keyboard_arrow_down</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Sub-bar: Checkbox toggle & results count -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between pt-2 border-t border-outline-variant/30 text-body-sm font-body-sm text-on-surface-variant gap-2">
+      <div class="flex flex-wrap items-center gap-6">
+        <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+          <input id="filter-pending"
+                 onchange="applyFilters()"
+                 class="w-4 h-4 rounded border-outline text-secondary focus:ring-secondary cursor-pointer"
+                 type="checkbox" />
+          <span class="text-label-md font-label-md text-on-surface">Solo materias pendientes / por cursar</span>
+        </label>
+        <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+          <input id="filter-available"
+                 onchange="applyFilters()"
+                 class="w-4 h-4 rounded border-outline text-secondary focus:ring-secondary cursor-pointer"
+                 type="checkbox" />
+          <span class="text-label-md font-label-md text-on-surface-variant">Solo habilitadas para cursar</span>
+        </label>
+      </div>
+      <div class="flex items-center gap-2 text-label-sm font-label-sm text-outline">
+        <span class="material-symbols-outlined text-base" data-icon="filter_list">filter_list</span>
+        <span>Mostrando <strong id="visible-count" class="text-on-surface">{{ kpis.total_courses }}</strong> materias del plan de estudios</span>
+        <button id="btn-reset-filters"
+                type="button"
+                onclick="resetFilters()"
+                class="ml-2 text-secondary hover:underline font-medium cursor-pointer">
+          Restablecer filtros
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 4. MAIN CONTENT AREA: (TABLA / MALLA) + DRAWER INTEGRADO              -->
+  <!-- ===================================================================== -->
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+
+    <!-- ── VISTA TABLA (8 Cols on XL) ──────────────────────────────────── -->
+    <section id="view-table-container" class="xl:col-span-8 bg-surface-container-lowest border border-outline-variant/70 rounded-xl shadow-sm overflow-hidden flex flex-col">
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-surface-container-low border-b border-outline-variant/70 h-10">
+              <th class="py-2.5 px-3 text-label-sm font-label-sm text-on-surface-variant tracking-wider uppercase font-semibold" scope="col">CÓDIGO</th>
+              <th class="py-2.5 px-3 text-label-sm font-label-sm text-on-surface-variant tracking-wider uppercase font-semibold" scope="col">MATERIA Y TIPOLOGÍA</th>
+              <th class="py-2.5 px-3 text-label-sm font-label-sm text-on-surface-variant tracking-wider uppercase font-semibold text-center" scope="col">CRÉDITOS</th>
+              <th class="py-2.5 px-3 text-label-sm font-label-sm text-on-surface-variant tracking-wider uppercase font-semibold" scope="col">SEMESTRE</th>
+              <th class="py-2.5 px-3 text-label-sm font-label-sm text-on-surface-variant tracking-wider uppercase font-semibold" scope="col">PRERREQUISITOS</th>
+              <th class="py-2.5 px-3 text-label-sm font-label-sm text-on-surface-variant tracking-wider uppercase font-semibold" scope="col">ESTADO ACADÉMICO</th>
+              <th class="py-2.5 px-3 text-label-sm font-label-sm text-on-surface-variant tracking-wider uppercase font-semibold text-right" scope="col">ACCIÓN</th>
+            </tr>
+          </thead>
+          <tbody id="courses-table-body" class="divide-y divide-outline-variant/30 text-body-md font-body-md">
+            <!-- Dynamic rows will be inserted by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- No results fallback -->
+      <div id="no-results-message" class="hidden p-8 text-center space-y-2">
+        <span class="material-symbols-outlined text-4xl text-outline">search_off</span>
+        <h4 class="text-headline-sm font-bold text-on-surface">No se encontraron asignaturas</h4>
+        <p class="text-body-sm text-on-surface-variant">Prueba ajustando los términos de búsqueda o restableciendo los filtros seleccionados.</p>
+        <button onclick="resetFilters()" class="mt-2 px-4 py-1.5 rounded-lg bg-secondary text-surface-container-lowest text-label-sm font-medium hover:bg-on-secondary-container transition-colors">
+          Restablecer filtros
+        </button>
+      </div>
+
+      <!-- Table Footer Pagination -->
+      <div class="p-3 bg-surface-container-low border-t border-outline-variant/50 flex flex-col sm:flex-row items-center justify-between text-body-sm font-body-sm text-on-surface-variant gap-2">
+        <div class="flex items-center gap-2">
+          <span>Filas por página:</span>
+          <select id="pagination-page-size"
+                  onchange="changePageSize(this.value)"
+                  class="border border-outline-variant rounded bg-surface-container-lowest text-xs py-1 px-2 text-on-surface focus:outline-none cursor-pointer">
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="all">Todas</option>
+          </select>
+          <span id="pagination-info">1 - 10 de {{ kpis.total_courses }} asignaturas</span>
+        </div>
+        <div id="pagination-controls" class="flex items-center gap-1">
+          <!-- Page buttons inserted by JS -->
+        </div>
       </div>
     </section>
-    {% endfor %}
 
-    <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!-- BANCO DE MATERIAS PENDIENTES                                       -->
-    <!-- ══════════════════════════════════════════════════════════════════ -->
-    {% if banco_materias %}
-    <section class="mb-xl mt-2xl" id="section-banco">
-      <button onclick="toggleSection('banco')"
-              class="w-full flex items-center justify-between p-md bg-surface-container rounded-xl mb-md hover:bg-surface-container-high transition-all">
-        <div class="flex items-center gap-md">
-          <div class="w-9 h-9 rounded-full bg-surface-container-highest flex items-center justify-center">
-            <span class="material-symbols-outlined text-on-surface-variant text-[18px]">radio_button_unchecked</span>
-          </div>
-          <div class="text-left">
-            <h2 class="font-headline-md text-headline-md text-on-surface">Banco de Materias (Pendientes o para repetir)</h2>
-            <p class="font-label-sm text-label-sm text-on-surface-variant">{{ banco_materias|length }} materia{{ banco_materias|length|pluralize:"s" }} disponibles para asignar a un semestre</p>
-          </div>
-        </div>
-        <span id="chevron-banco" class="material-symbols-outlined text-on-surface-variant transition-transform duration-200">expand_less</span>
-      </button>
-
-      <div id="body-banco" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
-        {% for item in banco_materias %}
-        <div class="bg-surface-container-lowest rounded-xl soft-shadow p-md border-l-4 border-outline-variant hover:shadow-md transition-shadow opacity-80 hover:opacity-100">
-          <div class="flex items-start justify-between mb-sm">
-            <div class="flex-1 min-w-0">
-              <span class="inline-block px-2 py-[2px] rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm mb-xs">
-                {{ item.course.code }}
-              </span>
-              <h3 class="font-label-md text-label-md text-on-surface leading-snug">{{ item.course.name }}</h3>
+    <!-- ── VISTA MALLA CURRICULAR (8 Cols on XL) ────────────────────────── -->
+    <section id="view-malla-container" class="hidden xl:col-span-8 space-y-4">
+      <div class="bg-surface-container-lowest border border-outline-variant/70 rounded-xl p-5 shadow-sm space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-outline-variant/40">
+          <div class="flex items-center gap-2.5">
+            <span class="material-symbols-outlined text-secondary text-2xl" data-icon="grid_view">grid_view</span>
+            <div>
+              <h3 class="text-headline-sm font-headline-sm text-on-surface font-bold">Malla Curricular Integral</h3>
+              <p class="text-body-sm font-body-sm text-on-surface-variant">Organización cronológica por niveles del plan de estudios</p>
             </div>
-            <button onclick="openEditModal('{{ item.course.id }}', '', 'IN_PROGRESS', '0.0', '{{ item.semester_taken }}', '{{ item.course.name|escapejs }}')" class="material-symbols-outlined text-outline text-[20px] ml-sm flex-shrink-0 mt-xs transition-colors hover:text-on-surface" title="Añadir a un semestre">add_circle</button>
           </div>
-          <div class="flex flex-wrap gap-sm mt-md pt-md border-t border-outline-variant">
-            <span class="flex items-center gap-xs font-label-sm text-label-sm text-on-surface-variant">
-              <span class="material-symbols-outlined text-[14px]">layers</span>Nivel base: {{ item.course.level }}
-            </span>
-            <span class="flex items-center gap-xs font-label-sm text-label-sm text-on-surface-variant">
-              <span class="material-symbols-outlined text-[14px]">toll</span>{{ item.course.credits }} créditos
-            </span>
-            {% if item.attempt > 1 %}
-            <span class="ml-auto inline-flex items-center gap-xs px-sm py-[2px] rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm">
-              <span class="w-2 h-2 rounded-full bg-error"></span>Intento {{ item.attempt }}
-            </span>
-            {% endif %}
-          </div>
+          <span class="text-label-sm font-label-sm px-2.5 py-1 rounded-full bg-secondary/10 text-secondary border border-secondary/20 font-semibold">
+            Semestre actual: Sem. {{ profile.current_semester }}
+          </span>
         </div>
-        {% endfor %}
+
+        <!-- Semesters Grid / Cohort Swimlanes -->
+        <div class="space-y-4" id="malla-semesters-container">
+          {% for sem in semesters_list %}
+          <div class="border border-outline-variant/60 rounded-xl p-4 bg-surface-container-lowest space-y-3 transition-shadow hover:shadow-sm">
+            <div class="flex items-center justify-between border-b border-outline-variant/30 pb-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full {% if sem.is_completed %}bg-emerald-500{% elif sem.in_progress_count > 0 %}bg-cyan-500 animate-pulse{% elif sem.is_next %}bg-sky-500{% else %}bg-outline{% endif %}"></span>
+                <span class="font-bold text-on-surface text-base">Semestre {{ sem.level }}</span>
+                <span class="text-xs text-on-surface-variant font-code-sm">({{ sem.total_credits }} créditos • {{ sem.total_courses }} materias)</span>
+              </div>
+              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full
+                           {% if sem.is_completed %}
+                             bg-emerald-50 text-emerald-800 border border-emerald-200
+                           {% elif sem.in_progress_count > 0 %}
+                             bg-cyan-50 text-cyan-900 border border-cyan-200
+                           {% elif sem.is_next %}
+                             bg-sky-50 text-sky-900 border border-sky-200
+                           {% else %}
+                             bg-surface-container text-on-surface-variant
+                           {% endif %}">
+                {{ sem.status_text }}
+              </span>
+            </div>
+
+            <!-- Cards in this semester -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+              {% for c in sem.courses %}
+              <div onclick="selectCourse({{ c.id }})"
+                   id="malla-card-{{ c.id }}"
+                   class="cursor-pointer p-3 rounded-lg border transition-all duration-150 relative group
+                          {% if c.status_code == 'PASSED' %}
+                            bg-emerald-50/40 border-emerald-200 hover:border-emerald-500 hover:shadow-xs
+                          {% elif c.status_code == 'IN_PROGRESS' %}
+                            bg-cyan-50/40 border-cyan-300 hover:border-cyan-500 hover:shadow-xs
+                          {% elif c.status_code == 'AVAILABLE' %}
+                            bg-sky-50/30 border-sky-200 hover:border-sky-500 hover:shadow-xs
+                          {% elif c.status_code == 'FAILED' %}
+                            bg-rose-50/40 border-rose-200 hover:border-rose-500 hover:shadow-xs
+                          {% else %}
+                            bg-surface-container-lowest border-outline-variant/50 hover:border-secondary hover:shadow-xs
+                          {% endif %}">
+                <div class="flex items-center justify-between gap-1 text-xs mb-1">
+                  <span class="font-code-sm font-bold text-on-surface">{{ c.code }}</span>
+                  <span class="text-[11px] font-medium text-on-surface-variant">{{ c.credits }} cr</span>
+                </div>
+                <div class="font-headline-sm text-sm font-semibold text-on-surface line-clamp-1 group-hover:text-secondary transition-colors" title="{{ c.name }}">
+                  {{ c.name }}
+                </div>
+                <div class="mt-2 flex items-center justify-between">
+                  <span class="text-[11px] px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1
+                               {% if c.status_code == 'PASSED' %}
+                                 bg-emerald-100 text-emerald-900
+                               {% elif c.status_code == 'IN_PROGRESS' %}
+                                 bg-cyan-100 text-cyan-900
+                               {% elif c.status_code == 'AVAILABLE' %}
+                                 bg-sky-100 text-sky-900
+                               {% elif c.status_code == 'FAILED' %}
+                                 bg-rose-100 text-rose-900
+                               {% else %}
+                                 bg-surface-container text-on-surface-variant
+                               {% endif %}">
+                    {% if c.status_code == 'PASSED' %}
+                      <span class="material-symbols-outlined text-[12px]">check</span>
+                      <span>Aprobada</span>
+                    {% elif c.status_code == 'IN_PROGRESS' %}
+                      <span class="w-1.5 h-1.5 rounded-full bg-cyan-600 animate-pulse"></span>
+                      <span>En curso</span>
+                    {% elif c.status_code == 'AVAILABLE' %}
+                      <span class="material-symbols-outlined text-[12px]">lock_open</span>
+                      <span>Habilitada</span>
+                    {% elif c.status_code == 'FAILED' %}
+                      <span class="material-symbols-outlined text-[12px]">cancel</span>
+                      <span>Reprobada</span>
+                    {% else %}
+                      <span class="material-symbols-outlined text-[12px]">lock</span>
+                      <span>Bloqueada</span>
+                    {% endif %}
+                  </span>
+
+                  {% if c.prerequisites %}
+                  <span class="text-[10px] text-on-surface-variant" title="Tiene {{ c.prerequisites|length }} prerrequisitos">
+                    {{ c.prerequisites|length }} prereq.
+                  </span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
       </div>
     </section>
-    {% endif %}
 
-    {% endif %}{# /counts.total #}
+    <!-- =================================================================== -->
+    <!-- 5. DRAWER LATERAL DERECHO / FICHA DE DETALLE DE MATERIA             -->
+    <!-- =================================================================== -->
+    <aside id="course-drawer" class="xl:col-span-4 bg-surface-container-lowest border border-outline-variant/80 rounded-xl shadow-md flex flex-col sticky top-6">
+      <!-- Drawer Header -->
+      <div class="p-5 border-b border-outline-variant/60">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <span id="drawer-code" class="font-code-sm text-code-sm font-bold px-2 py-0.5 rounded bg-primary-container text-on-primary">
+              CÓDIGO
+            </span>
+            <h2 id="drawer-name" class="text-headline-md font-headline-md text-on-surface font-bold mt-2 leading-snug">
+              Selecciona una materia
+            </h2>
+          </div>
+          <button type="button"
+                  onclick="closeDrawerMobile()"
+                  class="p-1 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container transition-colors"
+                  title="Cerrar panel">
+            <span class="material-symbols-outlined" data-icon="close">close</span>
+          </button>
+        </div>
 
-  </div><!-- /content -->
+        <!-- Prominent Academic Status Badge -->
+        <div class="mt-3" id="drawer-status-container">
+          <div id="drawer-status-badge" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface text-label-md font-label-md font-medium w-full">
+            <span class="material-symbols-outlined text-base">info</span>
+            <span id="drawer-status-text">Información académica</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drawer Body Scrollable Content -->
+      <div class="p-5 space-y-5 overflow-y-auto max-h-[calc(100vh-280px)] custom-scrollbar">
+        <!-- Quick Spec Badges -->
+        <div class="grid grid-cols-3 gap-2 py-2 px-3 bg-surface-container-low rounded-lg border border-outline-variant/40 text-center">
+          <div>
+            <div class="text-xs text-on-surface-variant">Créditos</div>
+            <div id="drawer-credits" class="text-headline-sm font-headline-sm text-on-surface font-code-sm font-semibold">--</div>
+          </div>
+          <div class="border-x border-outline-variant/40">
+            <div class="text-xs text-on-surface-variant">Semestre</div>
+            <div id="drawer-level" class="text-headline-sm font-headline-sm text-on-surface font-semibold">--</div>
+          </div>
+          <div>
+            <div class="text-xs text-on-surface-variant">Tipología</div>
+            <div id="drawer-typology" class="text-headline-sm font-headline-sm text-secondary font-medium truncate" title="">--</div>
+          </div>
+        </div>
+
+        <!-- Description & Objectives -->
+        <div>
+          <h3 class="text-label-md font-label-md text-on-surface uppercase tracking-wider font-semibold mb-1.5">Descripción y Objetivos</h3>
+          <p id="drawer-description" class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+            Selecciona cualquier asignatura de la tabla o la malla curricular para consultar sus especificaciones técnicas y requerimientos de aprobación.
+          </p>
+        </div>
+
+        <!-- Prerrequisitos requeridos (Critical Section) -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-label-md font-label-md text-on-surface uppercase tracking-wider font-semibold">Prerrequisitos requeridos</h3>
+            <span id="drawer-prereqs-summary" class="text-xs font-medium text-on-surface-variant">0 prerrequisitos</span>
+          </div>
+          <div id="drawer-prereqs-list" class="space-y-2">
+            <!-- Dynamic prerequisite cards -->
+          </div>
+        </div>
+
+        <!-- Pedagogical Advice Card -->
+        <div class="p-3 bg-surface-container-low rounded-lg border border-outline-variant/60 flex items-start gap-2.5">
+          <span class="material-symbols-outlined text-secondary text-lg mt-0.5" data-icon="info">info</span>
+          <p id="drawer-advice" class="text-body-sm font-body-sm text-on-surface-variant leading-snug">
+            Consulta el estado de avance para proyectar la inscripción en tu próximo periodo académico.
+          </p>
+        </div>
+
+        <!-- Materias dependientes de esta asignatura -->
+        <div class="space-y-2 pt-2 border-t border-outline-variant/40">
+          <h3 class="text-label-md font-label-md text-on-surface uppercase tracking-wider font-semibold">Materias que dependen de esta asignatura</h3>
+          <ul id="drawer-dependents-list" class="space-y-1.5 text-body-sm font-body-sm">
+            <!-- Dynamic dependents list -->
+          </ul>
+        </div>
+      </div>
+
+      <!-- Drawer Footer Action Bar -->
+      <div class="p-4 bg-surface-container-low border-t border-outline-variant/60 space-y-2">
+        <!-- Action: Ir a planificación de rutas -->
+        <a href="{% url 'student:routes' %}"
+           class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-secondary text-surface-container-lowest text-label-md font-label-md font-semibold hover:bg-on-secondary-container transition-colors shadow-sm">
+          <span>Simular en Planificación académica</span>
+          <span class="material-symbols-outlined text-base" data-icon="arrow_forward">arrow_forward</span>
+        </a>
+
+        <!-- Action: Ver horarios disponibles -->
+        <a href="{% url 'student:horarios' %}"
+           class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface hover:bg-surface-container text-label-md font-label-md font-medium transition-colors">
+          <span class="material-symbols-outlined text-base">schedule</span>
+          <span>Ver oferta de horarios</span>
+        </a>
+
+        <!-- Action: Descargar/Ver Ficha Técnica Sílabo -->
+        <button type="button"
+                onclick="openSyllabusModal()"
+                class="w-full flex items-center justify-center gap-2 py-1.5 px-4 rounded-lg bg-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container text-label-sm font-label-sm transition-colors">
+          <span class="material-symbols-outlined text-base" data-icon="picture_as_pdf">picture_as_pdf</span>
+          <span>Ficha técnica institucional / Sílabo</span>
+        </button>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 6. MODAL INSTITUCIONAL: SÍLABO Y FICHA TÉCNICA                        -->
+  <!-- ===================================================================== -->
+  <div id="syllabus-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest border border-outline-variant rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-outline-variant/60 flex items-center justify-between bg-surface-container-low">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
+            <span class="material-symbols-outlined text-2xl">school</span>
+          </div>
+          <div>
+            <h3 id="modal-title" class="text-headline-sm font-bold text-on-surface">Ficha Técnica Institucional</h3>
+            <p id="modal-code" class="text-label-sm font-code-sm text-on-surface-variant"></p>
+          </div>
+        </div>
+        <button onclick="closeSyllabusModal()" class="p-1 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto space-y-4 text-body-md text-on-surface">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-surface-container-low rounded-xl text-center">
+          <div>
+            <span class="text-xs text-on-surface-variant block">Programa</span>
+            <span class="font-semibold text-xs text-on-surface">{{ profile.program.name|default:"Ingeniería" }}</span>
+          </div>
+          <div>
+            <span class="text-xs text-on-surface-variant block">Créditos</span>
+            <span id="modal-credits" class="font-bold text-on-surface font-code-sm"></span>
+          </div>
+          <div>
+            <span class="text-xs text-on-surface-variant block">Nivel / Semestre</span>
+            <span id="modal-level" class="font-bold text-on-surface"></span>
+          </div>
+          <div>
+            <span class="text-xs text-on-surface-variant block">Estado Actual</span>
+            <span id="modal-status" class="font-bold text-xs"></span>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-label-md font-bold uppercase tracking-wider text-on-surface-variant mb-1">Descripción del Curso</h4>
+          <p id="modal-description" class="text-body-sm leading-relaxed text-on-surface-variant"></p>
+        </div>
+
+        <div>
+          <h4 class="text-label-md font-bold uppercase tracking-wider text-on-surface-variant mb-1">Prerrequisitos Académicos</h4>
+          <div id="modal-prereqs-list" class="space-y-1.5 text-body-sm"></div>
+        </div>
+
+        <div>
+          <h4 class="text-label-md font-bold uppercase tracking-wider text-on-surface-variant mb-1">Asignaturas Subsecuentes</h4>
+          <div id="modal-dependents-list" class="space-y-1.5 text-body-sm"></div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 bg-surface-container-low border-t border-outline-variant/60 flex items-center justify-between">
+        <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface hover:bg-surface-container text-label-md font-medium transition-colors">
+          <span class="material-symbols-outlined text-base">print</span>
+          <span>Imprimir Ficha</span>
+        </button>
+        <button onclick="closeSyllabusModal()" class="px-5 py-2 rounded-lg bg-secondary text-surface-container-lowest text-label-md font-semibold hover:bg-on-secondary-container transition-colors">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
-<script>
-  /**
-   * Colapsa/expande una sección de materias.
-   */
-  function toggleSection(id) {
-    const body    = document.getElementById('body-' + id);
-    const chevron = document.getElementById('chevron-' + id);
-    if (!body || !chevron) return;
+<!-- ======================================================================= -->
+<!-- 7. JSON DATA & CLIENT-SIDE INTERACTIVITY SCRIPT                         -->
+<!-- ======================================================================= -->
+{{ courses|json_script:"courses-raw-data" }}
 
-    const isOpen = body.style.display !== 'none';
-    body.style.display      = isOpen ? 'none' : 'grid';
-    chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+<script>
+  // ── Global State ────────────────────────────────────────────────────────
+  let allCourses = [];
+  try {
+    const rawData = document.getElementById('courses-raw-data');
+    if (rawData && rawData.textContent) {
+      let parsed = JSON.parse(rawData.textContent);
+      // Fallback si por alguna razón viniera doblemente serializado
+      if (typeof parsed === 'string') {
+        parsed = JSON.parse(parsed);
+      }
+      if (Array.isArray(parsed)) {
+        allCourses = parsed;
+      }
+    }
+  } catch (e) {
+    console.error("Error parsing courses data:", e);
+    allCourses = [];
   }
 
-  // Lógica del modal de edición
-  function openEditModal(courseId, recordId, status, grade, semesterTaken, courseName) {
-    document.getElementById('modal-course-id').value = courseId;
-    document.getElementById('modal-record-id').value = recordId;
-    document.getElementById('modal-status').value = status;
-    document.getElementById('modal-grade').value = grade;
-    
-    const semInput = document.getElementById('modal-semester-taken');
-    semInput.value = semesterTaken;
-    
-    // Bloquear edición de semestre si la materia fue reprobada
-    if (status === 'FAILED' && recordId !== '') {
-      semInput.disabled = true;
-      semInput.title = "No puedes cambiar el semestre de un intento reprobado.";
+  let filteredCourses = [...allCourses];
+  let selectedCourseId = null;
+  let currentPage = 1;
+  let pageSize = 10;
+  let currentView = 'table'; // 'table' or 'malla'
+
+  // ── Switch View (Table vs Malla) ────────────────────────────────────────
+  function switchView(viewName) {
+    currentView = viewName;
+    const btnTable = document.getElementById('btn-view-table');
+    const btnMalla = document.getElementById('btn-view-malla');
+    const viewTable = document.getElementById('view-table-container');
+    const viewMalla = document.getElementById('view-malla-container');
+
+    if (viewName === 'table') {
+      viewTable.classList.remove('hidden');
+      viewMalla.classList.add('hidden');
+
+      btnTable.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-surface-container-lowest text-secondary shadow-sm text-label-md font-label-md font-semibold transition-all";
+      btnMalla.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface text-label-md font-label-md font-medium transition-all";
     } else {
-      semInput.disabled = false;
-      semInput.title = "";
+      viewTable.classList.add('hidden');
+      viewMalla.classList.remove('hidden');
+
+      btnMalla.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-surface-container-lowest text-secondary shadow-sm text-label-md font-label-md font-semibold transition-all";
+      btnTable.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface text-label-md font-label-md font-medium transition-all";
+    }
+  }
+
+  // ── Apply Filters ───────────────────────────────────────────────────────
+  function applyFilters() {
+    const searchVal = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+    const semVal = document.getElementById('semester-filter')?.value || 'all';
+    const statusVal = document.getElementById('status-filter')?.value || 'all';
+    const creditsVal = document.getElementById('credits-filter')?.value || 'all';
+    const onlyPending = document.getElementById('filter-pending')?.checked || false;
+    const onlyAvailable = document.getElementById('filter-available')?.checked || false;
+
+    filteredCourses = allCourses.filter(c => {
+      // Búsqueda por texto (código o nombre)
+      if (searchVal) {
+        const matchesCode = c.code.toLowerCase().includes(searchVal);
+        const matchesName = c.name.toLowerCase().includes(searchVal);
+        if (!matchesCode && !matchesName) return false;
+      }
+
+      // Semestre
+      if (semVal !== 'all' && c.level.toString() !== semVal) {
+        return false;
+      }
+
+      // Estado académico
+      if (statusVal !== 'all' && c.status_code !== statusVal) {
+        return false;
+      }
+
+      // Créditos
+      if (creditsVal !== 'all' && c.credits.toString() !== creditsVal) {
+        return false;
+      }
+
+      // Checkbox Solo pendientes / por cursar
+      if (onlyPending && c.status_code === 'PASSED') {
+        return false;
+      }
+
+      // Checkbox Solo habilitadas para cursar
+      if (onlyAvailable && c.status_code !== 'AVAILABLE') {
+        return false;
+      }
+
+      return true;
+    });
+
+    currentPage = 1;
+    renderTable();
+    updateCounter();
+  }
+
+  // ── Reset Filters ───────────────────────────────────────────────────────
+  function resetFilters() {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = '';
+
+    const semFilter = document.getElementById('semester-filter');
+    if (semFilter) semFilter.value = 'all';
+
+    const statusFilter = document.getElementById('status-filter');
+    if (statusFilter) statusFilter.value = 'all';
+
+    const creditsFilter = document.getElementById('credits-filter');
+    if (creditsFilter) creditsFilter.value = 'all';
+
+    const filterPending = document.getElementById('filter-pending');
+    if (filterPending) filterPending.checked = false;
+
+    const filterAvailable = document.getElementById('filter-available');
+    if (filterAvailable) filterAvailable.checked = false;
+
+    filteredCourses = [...allCourses];
+    currentPage = 1;
+    renderTable();
+    updateCounter();
+  }
+
+  // ── Update Counter ──────────────────────────────────────────────────────
+  function updateCounter() {
+    const countEl = document.getElementById('visible-count');
+    if (countEl) {
+      countEl.textContent = filteredCourses.length;
+    }
+  }
+
+  // ── Pagination Handler ──────────────────────────────────────────────────
+  function changePageSize(size) {
+    if (size === 'all') {
+      pageSize = 9999;
+    } else {
+      pageSize = parseInt(size, 10) || 10;
+    }
+    currentPage = 1;
+    renderTable();
+  }
+
+  function goToPage(pageNum) {
+    const totalPages = Math.ceil(filteredCourses.length / pageSize) || 1;
+    if (pageNum < 1 || pageNum > totalPages) return;
+    currentPage = pageNum;
+    renderTable();
+  }
+
+  // ── Render Table ────────────────────────────────────────────────────────
+  function renderTable() {
+    const tbody = document.getElementById('courses-table-body');
+    const noResults = document.getElementById('no-results-message');
+    const paginationInfo = document.getElementById('pagination-info');
+    const paginationControls = document.getElementById('pagination-controls');
+
+    if (!tbody) return;
+
+    if (filteredCourses.length === 0) {
+      tbody.innerHTML = '';
+      if (noResults) noResults.classList.remove('hidden');
+      if (paginationInfo) paginationInfo.textContent = '0 asignaturas';
+      if (paginationControls) paginationControls.innerHTML = '';
+      return;
     }
 
-    document.getElementById('modal-course-name').innerText = courseName;
-    document.getElementById('edit-modal').classList.remove('hidden');
-  }
+    if (noResults) noResults.classList.add('hidden');
 
-  function closeEditModal() {
-    document.getElementById('edit-modal').classList.add('hidden');
-  }
+    const totalItems = filteredCourses.length;
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
 
-  function saveEditModal() {
-    const courseId = document.getElementById('modal-course-id').value;
-    const recordId = document.getElementById('modal-record-id').value;
-    const status = document.getElementById('modal-status').value;
-    const grade = document.getElementById('modal-grade').value;
-    const semesterTaken = document.getElementById('modal-semester-taken').value;
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, totalItems);
+    const pageItems = filteredCourses.slice(startIdx, endIdx);
 
-    fetch('{% url "student:courses_update" %}', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': '{{ csrf_token }}'
-      },
-      body: JSON.stringify({
-        course_id: courseId,
-        record_id: recordId,
-        status: status,
-        grade: grade,
-        semester_taken: semesterTaken
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      if(data.success) {
-        window.location.reload();
-      } else {
-        alert('Error: ' + data.error);
+    // Update pagination info text
+    if (paginationInfo) {
+      paginationInfo.textContent = `${startIdx + 1} - ${endIdx} de ${totalItems} asignaturas`;
+    }
+
+    // Render pagination buttons
+    if (paginationControls) {
+      let controlsHtml = '';
+      controlsHtml += `
+        <button type="button"
+                onclick="goToPage(${currentPage - 1})"
+                ${currentPage === 1 ? 'disabled class="p-1 rounded text-outline opacity-40 cursor-not-allowed"' : 'class="p-1 rounded hover:bg-surface-container text-on-surface cursor-pointer"'}
+                title="Página anterior">
+          <span class="material-symbols-outlined text-lg">chevron_left</span>
+        </button>
+      `;
+
+      for (let p = 1; p <= totalPages; p++) {
+        // Show only nearby pages if too many
+        if (totalPages > 7 && Math.abs(p - currentPage) > 2 && p !== 1 && p !== totalPages) {
+          if (p === 2 || p === totalPages - 1) {
+            controlsHtml += `<span class="px-1 text-outline">...</span>`;
+          }
+          continue;
+        }
+
+        const isActive = (p === currentPage);
+        controlsHtml += `
+          <button type="button"
+                  onclick="goToPage(${p})"
+                  class="px-2.5 py-1 rounded text-xs font-semibold cursor-pointer transition-colors ${isActive ? 'bg-secondary text-surface-container-lowest shadow-xs' : 'hover:bg-surface-container text-on-surface'}">
+            ${p}
+          </button>
+        `;
       }
-    })
-    .catch(error => {
-      console.error("Fetch error:", error);
-      alert('Error en la conexión.');
+
+      controlsHtml += `
+        <button type="button"
+                onclick="goToPage(${currentPage + 1})"
+                ${currentPage === totalPages ? 'disabled class="p-1 rounded text-outline opacity-40 cursor-not-allowed"' : 'class="p-1 rounded hover:bg-surface-container text-on-surface cursor-pointer"'}
+                title="Página siguiente">
+          <span class="material-symbols-outlined text-lg">chevron_right</span>
+        </button>
+      `;
+      paginationControls.innerHTML = controlsHtml;
+    }
+
+    // Generate table rows HTML
+    let rowsHtml = '';
+    pageItems.forEach(c => {
+      const isSelected = (c.id === selectedCourseId);
+      const rowClass = isSelected
+        ? 'bg-secondary/10 hover:bg-secondary/15 transition-colors border-l-4 border-secondary'
+        : 'hover:bg-surface-container-low transition-colors';
+
+      // Prerrequisitos chips
+      let prereqsHtml = '';
+      if (!c.has_prereqs) {
+        prereqsHtml = '<span class="text-xs text-on-surface-variant italic">Sin prerrequisito directo</span>';
+      } else {
+        const chips = c.prerequisites.slice(0, 3).map(p => {
+          let badgeStyle = 'bg-surface-container text-on-surface border-outline-variant/40';
+          if (p.status === 'PASSED') {
+            badgeStyle = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+          } else if (p.status === 'IN_PROGRESS') {
+            badgeStyle = 'bg-cyan-50 text-cyan-900 border-cyan-200';
+          } else if (p.status === 'FAILED') {
+            badgeStyle = 'bg-rose-50 text-rose-800 border-rose-200';
+          } else {
+            badgeStyle = 'bg-amber-50 text-amber-800 border-amber-200';
+          }
+          return `<span class="inline-block text-[11px] px-1.5 py-0.5 rounded border ${badgeStyle}">${p.code}</span>`;
+        });
+        prereqsHtml = `<div class="flex flex-wrap gap-1">${chips.join('')}${c.prerequisites.length > 3 ? `<span class="text-[10px] text-outline font-medium">+${c.prerequisites.length - 3}</span>` : ''}</div>`;
+      }
+
+      // Estado académico chip
+      let statusBadgeHtml = '';
+      if (c.status_code === 'PASSED') {
+        statusBadgeHtml = `
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <span class="material-symbols-outlined text-xs text-emerald-600">check_circle</span>
+            <span>${c.badge_text}</span>
+          </span>
+        `;
+      } else if (c.status_code === 'IN_PROGRESS') {
+        statusBadgeHtml = `
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-medium bg-cyan-50 text-cyan-900 border border-cyan-200">
+            <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+            <span>${c.badge_text}</span>
+          </span>
+        `;
+      } else if (c.status_code === 'AVAILABLE') {
+        statusBadgeHtml = `
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-medium bg-sky-50 text-sky-900 border border-sky-200">
+            <span class="material-symbols-outlined text-xs text-sky-600">lock_open</span>
+            <span>${c.badge_text}</span>
+          </span>
+        `;
+      } else if (c.status_code === 'FAILED') {
+        statusBadgeHtml = `
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-medium bg-rose-50 text-rose-900 border border-rose-200">
+            <span class="material-symbols-outlined text-xs text-rose-600">cancel</span>
+            <span>${c.badge_text}</span>
+          </span>
+        `;
+      } else {
+        statusBadgeHtml = `
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-sm font-label-sm font-medium bg-amber-50 text-amber-900 border border-amber-200">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span>${c.badge_text}</span>
+          </span>
+        `;
+      }
+
+      // Botón Acción
+      const actionBtnHtml = isSelected
+        ? `<button type="button" onclick="selectCourse(${c.id})" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-secondary text-surface-container-lowest text-label-sm font-label-sm font-semibold shadow-xs">
+             <span>Ficha activa</span>
+             <span class="material-symbols-outlined text-sm">chevron_right</span>
+           </button>`
+        : `<button type="button" onclick="selectCourse(${c.id})" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-outline-variant bg-surface-container-lowest text-on-surface text-label-sm font-label-sm hover:bg-surface-container-low transition-colors cursor-pointer">
+             <span>Ver ficha</span>
+           </button>`;
+
+      rowsHtml += `
+        <tr id="table-row-${c.id}" class="${rowClass} cursor-pointer" onclick="selectCourse(${c.id})">
+          <td class="py-3 px-3 whitespace-nowrap">
+            <span class="font-code-sm text-code-sm font-semibold px-2 py-1 rounded bg-surface-container text-on-surface border border-outline-variant/40">
+              ${c.code}
+            </span>
+          </td>
+          <td class="py-3 px-3">
+            <div class="font-headline-sm text-headline-sm font-semibold text-on-surface flex items-center gap-1.5">
+              <span>${c.name}</span>
+              ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>' : ''}
+            </div>
+            <div class="text-xs text-on-surface-variant flex items-center gap-2 mt-0.5">
+              <span>${c.typology}</span>
+              <span>•</span>
+              <span>${c.department}</span>
+            </div>
+          </td>
+          <td class="py-3 px-3 text-center whitespace-nowrap">
+            <span class="font-code-sm text-code-sm font-medium bg-surface-container px-2 py-0.5 rounded text-on-surface">
+              ${c.credits} cr
+            </span>
+          </td>
+          <td class="py-3 px-3 whitespace-nowrap">
+            <span class="text-label-sm font-label-sm px-2.5 py-1 rounded-full bg-surface-container font-medium text-on-surface">
+              Semestre ${c.level}
+            </span>
+          </td>
+          <td class="py-3 px-3">
+            ${prereqsHtml}
+          </td>
+          <td class="py-3 px-3 whitespace-nowrap">
+            ${statusBadgeHtml}
+          </td>
+          <td class="py-3 px-3 text-right whitespace-nowrap">
+            ${actionBtnHtml}
+          </td>
+        </tr>
+      `;
     });
+
+    tbody.innerHTML = rowsHtml;
   }
+
+  // ── Select Course & Update Drawer ───────────────────────────────────────
+  function selectCourse(courseId) {
+    selectedCourseId = courseId;
+    const course = allCourses.find(c => c.id === courseId);
+    if (!course) return;
+
+    // Highlight row in table if present
+    document.querySelectorAll('#courses-table-body tr').forEach(tr => {
+      tr.classList.remove('bg-secondary/10', 'border-l-4', 'border-secondary');
+      tr.classList.add('hover:bg-surface-container-low');
+    });
+    const currentTr = document.getElementById(`table-row-${courseId}`);
+    if (currentTr) {
+      currentTr.classList.add('bg-secondary/10', 'border-l-4', 'border-secondary');
+    }
+
+    // Highlight card in Malla if present
+    document.querySelectorAll('[id^="malla-card-"]').forEach(card => {
+      card.classList.remove('ring-2', 'ring-secondary', 'scale-[1.02]');
+    });
+    const currentCard = document.getElementById(`malla-card-${courseId}`);
+    if (currentCard) {
+      currentCard.classList.add('ring-2', 'ring-secondary', 'scale-[1.02]');
+    }
+
+    // Update Drawer Elements
+    const codeEl = document.getElementById('drawer-code');
+    if (codeEl) codeEl.textContent = course.code;
+
+    const nameEl = document.getElementById('drawer-name');
+    if (nameEl) nameEl.textContent = course.name;
+
+    const creditsEl = document.getElementById('drawer-credits');
+    if (creditsEl) creditsEl.textContent = `${course.credits} cr`;
+
+    const levelEl = document.getElementById('drawer-level');
+    if (levelEl) levelEl.textContent = `Sem. ${course.level}`;
+
+    const typologyEl = document.getElementById('drawer-typology');
+    if (typologyEl) {
+      typologyEl.textContent = course.typology;
+      typologyEl.title = course.typology;
+    }
+
+    const descEl = document.getElementById('drawer-description');
+    if (descEl) descEl.textContent = course.description;
+
+    const adviceEl = document.getElementById('drawer-advice');
+    if (adviceEl) adviceEl.textContent = course.advice;
+
+    // Drawer Status Badge
+    const statusContainer = document.getElementById('drawer-status-container');
+    if (statusContainer) {
+      let badgeClass = 'bg-surface-container text-on-surface border-outline-variant/40';
+      let icon = 'info';
+
+      if (course.status_code === 'PASSED') {
+        badgeClass = 'bg-emerald-50 text-emerald-900 border-emerald-200';
+        icon = 'check_circle';
+      } else if (course.status_code === 'IN_PROGRESS') {
+        badgeClass = 'bg-cyan-50 text-cyan-900 border-cyan-200';
+        icon = 'timelapse';
+      } else if (course.status_code === 'AVAILABLE') {
+        badgeClass = 'bg-sky-50 text-sky-900 border-sky-200';
+        icon = 'lock_open';
+      } else if (course.status_code === 'FAILED') {
+        badgeClass = 'bg-rose-50 text-rose-900 border-rose-200';
+        icon = 'cancel';
+      } else {
+        badgeClass = 'bg-amber-50 text-amber-900 border-amber-200';
+        icon = 'warning';
+      }
+
+      statusContainer.innerHTML = `
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-label-md font-label-md font-medium w-full border ${badgeClass}">
+          <span class="material-symbols-outlined text-base">${icon}</span>
+          <span>${course.badge_text}</span>
+        </div>
+      `;
+    }
+
+    // Drawer Prerrequisitos
+    const prereqsSummary = document.getElementById('drawer-prereqs-summary');
+    const prereqsList = document.getElementById('drawer-prereqs-list');
+    if (prereqsSummary && prereqsList) {
+      if (!course.has_prereqs) {
+        prereqsSummary.textContent = 'Sin prerrequisitos';
+        prereqsList.innerHTML = `
+          <div class="p-3 rounded-lg border border-outline-variant/40 bg-surface-container-low text-body-sm text-on-surface-variant flex items-center gap-2">
+            <span class="material-symbols-outlined text-base text-secondary">check</span>
+            <span>Esta materia no exige asignaturas previas en el plan.</span>
+          </div>
+        `;
+      } else {
+        prereqsSummary.textContent = `${course.pending_prereqs_count} de ${course.prerequisites.length} pendientes`;
+
+        let pCardsHtml = '';
+        course.prerequisites.forEach(p => {
+          let cardStyle = 'border-outline-variant/50 bg-surface-container-low';
+          let chipStyle = 'bg-surface-container text-on-surface-variant';
+
+          if (p.status === 'PASSED') {
+            cardStyle = 'border-emerald-200 bg-emerald-50/50';
+            chipStyle = 'bg-emerald-100 text-emerald-900 border-emerald-300';
+          } else if (p.status === 'IN_PROGRESS') {
+            cardStyle = 'border-cyan-200 bg-cyan-50/50';
+            chipStyle = 'bg-cyan-100 text-cyan-900 border-cyan-300';
+          } else if (p.status === 'FAILED') {
+            cardStyle = 'border-rose-200 bg-rose-50/50';
+            chipStyle = 'bg-rose-100 text-rose-900 border-rose-300';
+          } else {
+            cardStyle = 'border-amber-200 bg-amber-50/50';
+            chipStyle = 'bg-amber-100 text-amber-900 border-amber-300';
+          }
+
+          pCardsHtml += `
+            <div class="p-3 rounded-lg border ${cardStyle} flex items-start justify-between gap-3">
+              <div class="space-y-0.5">
+                <div class="flex items-center gap-2">
+                  <span class="font-code-sm text-code-sm font-bold text-on-surface">${p.code}</span>
+                  <span class="text-body-sm font-body-sm font-medium text-on-surface">${p.name}</span>
+                </div>
+                <div class="text-xs text-on-surface-variant">Semestre ${p.level}</div>
+              </div>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border ${chipStyle}">
+                ${p.label}
+              </span>
+            </div>
+          `;
+        });
+        prereqsList.innerHTML = pCardsHtml;
+      }
+    }
+
+    // Drawer Materias Dependientes
+    const depsList = document.getElementById('drawer-dependents-list');
+    if (depsList) {
+      if (!course.dependents || course.dependents.length === 0) {
+        depsList.innerHTML = `
+          <li class="p-2.5 rounded bg-surface-container-low text-xs text-on-surface-variant">
+            Ninguna materia depende directamente de esta asignatura.
+          </li>
+        `;
+      } else {
+        let depsHtml = '';
+        course.dependents.forEach(dep => {
+          depsHtml += `
+            <li onclick="selectCourse(${dep.id})"
+                class="flex items-center justify-between p-2.5 rounded bg-surface-container-lowest border border-outline-variant/40 hover:border-secondary hover:bg-surface-container-low cursor-pointer transition-all">
+              <div class="flex items-center gap-2">
+                <span class="font-code-sm text-code-sm font-semibold text-on-surface">${dep.code}</span>
+                <span class="text-on-surface text-sm font-medium">${dep.name}</span>
+              </div>
+              <span class="text-xs text-outline font-medium">Semestre ${dep.level}</span>
+            </li>
+          `;
+        });
+        depsList.innerHTML = depsHtml;
+      }
+    }
+  }
+
+  // ── Modal Sílabo ────────────────────────────────────────────────────────
+  function openSyllabusModal() {
+    const course = allCourses.find(c => c.id === selectedCourseId) || allCourses[0];
+    if (!course) return;
+
+    document.getElementById('modal-title').textContent = course.name;
+    document.getElementById('modal-code').textContent = `Código oficial: ${course.code}`;
+    document.getElementById('modal-credits').textContent = `${course.credits} Créditos`;
+    document.getElementById('modal-level').textContent = `Semestre ${course.level}`;
+    document.getElementById('modal-status').textContent = course.badge_text;
+    document.getElementById('modal-description').textContent = course.description;
+
+    const prereqsDiv = document.getElementById('modal-prereqs-list');
+    if (prereqsDiv) {
+      if (!course.has_prereqs) {
+        prereqsDiv.innerHTML = '<span class="text-on-surface-variant italic">No posee prerrequisitos.</span>';
+      } else {
+        prereqsDiv.innerHTML = course.prerequisites.map(p => `
+          <div class="p-2 rounded bg-surface-container-low flex justify-between items-center text-xs">
+            <span class="font-semibold text-on-surface">${p.code} - ${p.name} (Sem. ${p.level})</span>
+            <span class="font-medium px-2 py-0.5 rounded bg-surface-container text-on-surface">${p.label}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    const depsDiv = document.getElementById('modal-dependents-list');
+    if (depsDiv) {
+      if (!course.dependents || course.dependents.length === 0) {
+        depsDiv.innerHTML = '<span class="text-on-surface-variant italic">Ninguna materia depende de este curso.</span>';
+      } else {
+        depsDiv.innerHTML = course.dependents.map(d => `
+          <div class="p-2 rounded bg-surface-container-low flex justify-between items-center text-xs">
+            <span class="font-semibold text-on-surface">${d.code} - ${d.name}</span>
+            <span class="text-on-surface-variant font-medium">Semestre ${d.level}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    document.getElementById('syllabus-modal')?.classList.remove('hidden');
+  }
+
+  function closeSyllabusModal() {
+    document.getElementById('syllabus-modal')?.classList.add('hidden');
+  }
+
+  function closeDrawerMobile() {
+    // Para pantallas pequeñas o colapsar
+    const drawer = document.getElementById('course-drawer');
+    if (drawer && window.innerWidth < 1280) {
+      drawer.classList.add('hidden');
+    }
+  }
+
+  // ── Initialization on Page Load ─────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    // Pre-select first course or selected course from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramCourseId = urlParams.get('selected_course');
+
+    let initialId = null;
+    if (paramCourseId) {
+      const match = allCourses.find(c => c.id.toString() === paramCourseId || c.code === paramCourseId);
+      if (match) initialId = match.id;
+    }
+
+    if (!initialId && allCourses.length > 0) {
+      // Find first available or in-progress course, or default to first
+      const activeOrAvail = allCourses.find(c => c.status_code === 'IN_PROGRESS' || c.status_code === 'AVAILABLE');
+      initialId = activeOrAvail ? activeOrAvail.id : allCourses[0].id;
+    }
+
+    renderTable();
+    updateCounter();
+
+    if (initialId) {
+      selectCourse(initialId);
+    }
+  });
 </script>
-
-<!-- Modal Edición -->
-<div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-all">
-  <div class="bg-surface rounded-xl shadow-lg w-full max-w-sm p-xl soft-shadow border border-outline-variant">
-    <div class="flex justify-between items-center mb-md">
-      <h3 class="font-headline-md text-headline-md text-on-surface">Editar Materia</h3>
-      <button onclick="closeEditModal()" class="material-symbols-outlined text-on-surface-variant hover:text-error transition-colors">close</button>
-    </div>
-    
-    <p id="modal-course-name" class="font-label-md text-label-md text-on-surface-variant mb-lg"></p>
-    
-    <input type="hidden" id="modal-course-id">
-    <input type="hidden" id="modal-record-id">
-    
-    <div class="space-y-md mb-xl">
-      <div>
-        <label class="block font-label-sm text-label-sm text-on-surface mb-xs">Semestre asignado</label>
-        <input type="number" id="modal-semester-taken" min="1" max="20" class="w-full p-sm rounded-lg border border-outline bg-surface-container-lowest text-on-surface font-body-md shadow-sm outline-none focus:border-primary transition-colors" required>
-      </div>
-      <div>
-        <label class="block font-label-sm text-label-sm text-on-surface mb-xs">Estado de la materia</label>
-        <select id="modal-status" class="w-full p-sm rounded-lg border border-outline bg-surface-container-lowest text-on-surface font-body-md shadow-sm outline-none focus:border-primary transition-colors">
-          <option value="PASSED">Aprobada</option>
-          <option value="FAILED">Reprobada</option>
-          <option value="IN_PROGRESS">En curso</option>
-          <option value="PENDING">Eliminar registro (Mover al banco)</option>
-        </select>
-      </div>
-      <div>
-        <label class="block font-label-sm text-label-sm text-on-surface mb-xs">Nota Final (opcional)</label>
-        <input type="number" id="modal-grade" step="0.1" min="0" max="5.0" class="w-full p-sm rounded-lg border border-outline bg-surface-container-lowest text-on-surface font-body-md shadow-sm outline-none focus:border-primary transition-colors">
-      </div>
-    </div>
-    
-    <div class="flex justify-end gap-sm">
-      <button onclick="closeEditModal()" class="px-md py-sm font-label-md text-label-md text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors">Cancelar</button>
-      <button onclick="saveEditModal()" class="px-md py-sm font-label-md text-label-md bg-primary text-on-primary rounded-lg hover:brightness-95 transition-all shadow-sm">Guardar cambios</button>
-    </div>
-  </div>
-</div>
-
 {% endblock %}

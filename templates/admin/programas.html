@@ -1,0 +1,346 @@
+{% extends 'base_admin.html' %}
+
+{% block page_title %}Programas Académicos — EduPilot{% endblock %}
+
+{% block admin_content %}
+<main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-[1600px] w-full mx-auto min-w-0">
+
+<!-- =========================================================================
+           MESSAGES / ALERTS
+           ========================================================================= -->
+{% if messages %}
+<div class="space-y-2">
+  {% for message in messages %}
+  <div class="flex items-center gap-3 px-4 py-3 rounded-lg border
+    {% if message.tags == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-800
+    {% elif message.tags == 'error' %}bg-error-container/40 border-error/30 text-on-error-container
+    {% else %}bg-surface-container-high border-outline-variant text-on-surface{% endif %}
+    text-body-sm font-body-sm">
+    <span class="material-symbols-outlined text-[18px]">
+      {% if message.tags == 'success' %}check_circle{% elif message.tags == 'error' %}error{% else %}info{% endif %}
+    </span>
+    {{ message }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- =========================================================================
+           PAGE HEADER / BANNER
+           ========================================================================= -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2">
+  <div class="flex flex-col gap-1.5">
+    <div class="flex items-center gap-3">
+      <h1 class="text-headline-lg font-headline-lg font-bold text-on-surface tracking-tight">Programas académicos</h1>
+      <span class="px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-secondary-container font-label-sm text-label-sm border border-secondary-container/30">Módulo A04</span>
+      <span class="px-2.5 py-0.5 rounded-full bg-surface-container-low text-on-surface-variant font-code-sm text-code-sm border border-outline-variant/40">{{ stats.total_programs }} programas registrados</span>
+    </div>
+    <p class="text-body-md font-body-md text-on-surface-variant max-w-3xl">
+      Administra las carreras universitarias y mallas curriculares que sirven como base para la planificación de rutas de estudio y graduación.
+    </p>
+  </div>
+  <!-- Header Actions -->
+  <div class="flex items-center gap-3 shrink-0">
+    <button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary hover:bg-on-secondary-container text-surface-container-lowest transition-colors text-label-md font-label-md shadow-xs" onclick="document.getElementById('modal-crear-programa').classList.remove('hidden')">
+      <span class="material-symbols-outlined text-[18px]">add</span>
+      <span>+ Crear programa</span>
+    </button>
+  </div>
+</div>
+
+<!-- =========================================================================
+           METRIC KPI CARDS
+           ========================================================================= -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+  <!-- KPI 1: Total Programas -->
+  <div class="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/40 shadow-xs flex flex-col justify-between">
+    <div class="flex items-start justify-between">
+      <div class="flex flex-col">
+        <span class="text-label-sm font-label-sm text-on-surface-variant">Total de programas</span>
+        <span class="text-headline-xl font-headline-xl text-on-surface mt-1">{{ stats.total_programs }}</span>
+      </div>
+      <div class="p-2 rounded-lg bg-surface-container-low text-secondary border border-outline-variant/30">
+        <span class="material-symbols-outlined text-[22px]">account_balance</span>
+      </div>
+    </div>
+    <div class="mt-3 pt-3 border-t border-outline-variant/20 flex items-center gap-2 text-label-sm font-label-sm text-outline">
+      <span class="font-medium text-on-surface">{{ stats.active_programs }} activos</span>
+      <span>•</span>
+      <span class="font-medium text-on-surface">{{ stats.inactive_programs }} inactivos</span>
+    </div>
+  </div>
+  <!-- KPI 2: Programas Activos -->
+  <div class="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/40 shadow-xs flex flex-col justify-between">
+    <div class="flex items-start justify-between">
+      <div class="flex flex-col">
+        <span class="text-label-sm font-label-sm text-on-surface-variant">Programas activos</span>
+        <span class="text-headline-xl font-headline-xl text-on-surface mt-1">{{ stats.active_programs }}</span>
+      </div>
+      <div class="p-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
+        <span class="material-symbols-outlined text-[22px]">check_circle</span>
+      </div>
+    </div>
+    <div class="mt-3 pt-3 border-t border-outline-variant/20 flex items-center justify-between">
+      <span class="text-body-sm font-body-sm text-on-surface-variant">Mallas operativas</span>
+      {% if stats.total_programs > 0 %}
+      <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-label-sm font-label-sm font-semibold">
+        {% widthratio stats.active_programs stats.total_programs 100 %}% operativos
+      </span>
+      {% endif %}
+    </div>
+  </div>
+  <!-- KPI 3: Inactivos -->
+  <div class="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/40 shadow-xs flex flex-col justify-between">
+    <div class="flex items-start justify-between">
+      <div class="flex flex-col">
+        <span class="text-label-sm font-label-sm text-on-surface-variant">Programas inactivos</span>
+        <span class="text-headline-xl font-headline-xl text-on-surface mt-1">{{ stats.inactive_programs }}</span>
+      </div>
+      <div class="p-2 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
+        <span class="material-symbols-outlined text-[22px]">pause_circle</span>
+      </div>
+    </div>
+    <div class="mt-3 pt-3 border-t border-outline-variant/20 flex items-center justify-between">
+      <span class="text-body-sm font-body-sm text-on-surface-variant">Desactivados</span>
+      <span class="px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-label-sm font-label-sm font-semibold">Requieren revisión</span>
+    </div>
+  </div>
+  <!-- KPI 4: Estudiantes Matriculados -->
+  <div class="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/40 shadow-xs flex flex-col justify-between">
+    <div class="flex items-start justify-between">
+      <div class="flex flex-col">
+        <span class="text-label-sm font-label-sm text-on-surface-variant">Estudiantes matriculados</span>
+        <span class="text-headline-xl font-headline-xl text-on-surface mt-1">{{ stats.total_students_enrolled }}</span>
+      </div>
+      <div class="p-2 rounded-lg bg-surface-container-high text-secondary border border-secondary-container/40">
+        <span class="material-symbols-outlined text-[22px]">groups</span>
+      </div>
+    </div>
+    <div class="mt-3 pt-3 border-t border-outline-variant/20 flex items-center gap-1.5 text-body-sm font-body-sm text-outline">
+      <span class="text-emerald-700 font-medium">Vinculados activos</span>
+      <span>en planes de estudio</span>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+           FILTERS & SEARCH
+           ========================================================================= -->
+<form method="get" action="{% url 'admin_panel:programs' %}">
+  <div class="p-3.5 rounded-xl bg-surface-container-lowest border border-outline-variant/40 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+    <div class="relative flex-1 min-w-[280px]">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+      <input name="q" value="{{ search_query }}" class="w-full pl-10 pr-4 py-2 text-body-md font-body-md bg-surface-container-low rounded-lg border border-outline-variant/50 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-on-surface placeholder-outline transition-all" placeholder="Buscar por nombre de programa..." type="text"/>
+    </div>
+    <div class="flex flex-wrap items-center gap-2.5">
+      <button type="submit" class="px-3 py-2 text-body-sm font-body-sm bg-secondary text-surface-container-lowest rounded-lg hover:bg-on-secondary-container transition-colors">
+        Buscar
+      </button>
+      {% if search_query %}
+      <a href="{% url 'admin_panel:programs' %}" class="px-3 py-2 text-body-sm font-body-sm text-outline hover:text-on-surface hover:bg-surface-container-low rounded-lg transition-colors flex items-center gap-1.5 border border-transparent">
+        <span class="material-symbols-outlined text-[16px]">restart_alt</span>
+        <span>Limpiar filtros</span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</form>
+
+<!-- =========================================================================
+           DATA TABLE: PROGRAMAS ACADÉMICOS
+           ========================================================================= -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/40 shadow-xs overflow-hidden">
+  <!-- Table Head Bar -->
+  <div class="px-5 py-3 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container-low/40">
+    <div class="flex items-center gap-2">
+      <span class="font-headline-sm text-headline-sm text-on-surface">Catálogo de carreras y planes</span>
+      <span class="text-label-sm font-label-sm text-on-surface-variant font-normal">({{ programs_data|length }} programas)</span>
+    </div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="h-10 bg-surface-container-low/80 border-b border-outline-variant/40 text-label-sm font-label-sm text-outline">
+          <th class="px-4 py-2">PROGRAMA ACADÉMICO</th>
+          <th class="px-4 py-2">MATERIAS Y CRÉDITOS</th>
+          <th class="px-4 py-2">ESTUDIANTES</th>
+          <th class="px-4 py-2">ESTADO</th>
+          <th class="px-4 py-2 text-right">ACCIONES</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-outline-variant/20 text-body-md font-body-md">
+        {% for item in programs_data %}
+        <tr class="hover:bg-surface-container-low/30 transition-colors {% if not item.program.is_active %}opacity-70{% endif %}">
+          <td class="px-4 py-3.5">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg {% if item.program.is_active %}bg-surface-container text-secondary{% else %}bg-surface-container-high/40 text-outline{% endif %} font-headline-sm font-bold flex items-center justify-center border border-secondary-container/50">
+                {{ item.program.name|slice:":2"|upper }}
+              </div>
+              <div class="flex flex-col">
+                <span class="font-headline-sm text-headline-sm text-on-surface">{{ item.program.name }}</span>
+                <span class="text-label-sm font-label-sm text-outline">ID: {{ item.program.id }}</span>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-3.5">
+            <div class="flex items-center gap-1.5 text-body-sm font-body-sm">
+              <span class="font-medium text-on-surface">{{ item.course_count }} materias</span>
+              {% if item.total_credits > 0 %}
+              <span class="text-outline">•</span>
+              <span class="font-code-sm text-code-sm text-on-surface-variant">{{ item.total_credits }} cr</span>
+              {% endif %}
+            </div>
+          </td>
+          <td class="px-4 py-3.5">
+            <div class="flex items-center gap-1.5">
+              <span class="font-headline-sm text-headline-sm text-on-surface">{{ item.student_count }}</span>
+              <span class="text-[11px] font-label-sm text-outline">est.</span>
+            </div>
+          </td>
+          <td class="px-4 py-3.5">
+            {% if item.program.is_active %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-label-sm font-label-sm font-semibold">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+              Activo
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-low text-on-surface-variant border border-outline-variant text-label-sm font-label-sm font-semibold">
+              <span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+              Inactivo
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3.5 text-right">
+            <div class="flex items-center justify-end gap-1.5">
+              <!-- Toggle activo/inactivo -->
+              <form method="post" action="{% url 'admin_panel:programs' %}" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_program">
+                <input type="hidden" name="program_id" value="{{ item.program.id }}">
+                <button type="submit" class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors" title="{% if item.program.is_active %}Desactivar{% else %}Activar{% endif %}">
+                  <span class="material-symbols-outlined text-[18px]">{% if item.program.is_active %}toggle_on{% else %}toggle_off{% endif %}</span>
+                </button>
+              </form>
+              <!-- Editar -->
+              <button class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors"
+                title="Editar programa"
+                onclick="openEditModal({{ item.program.id }}, '{{ item.program.name|escapejs }}', {{ item.program.is_active|yesno:'true,false' }})">
+                <span class="material-symbols-outlined text-[18px]">edit</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="px-4 py-12 text-center text-on-surface-variant">
+            <div class="flex flex-col items-center gap-2">
+              <span class="material-symbols-outlined text-[40px] text-outline">school</span>
+              <p class="text-body-md font-body-md">No hay programas registrados aún.</p>
+              <button onclick="document.getElementById('modal-crear-programa').classList.remove('hidden')" class="text-secondary text-label-md font-label-md hover:underline mt-1">Crear el primer programa →</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="mt-4 pt-4 border-t border-outline-variant/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-body-sm font-body-sm text-outline">
+  <div class="flex items-center gap-2">
+    <span class="material-symbols-outlined text-[16px] text-secondary">verified_user</span>
+    <span>EduPilot • Gestión de mallas y programas académicos universitarios.</span>
+  </div>
+</footer>
+
+</main>
+
+<!-- =========================================================================
+           MODAL: CREAR PROGRAMA
+           ========================================================================= -->
+<div id="modal-crear-programa" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="w-full max-w-md bg-surface rounded-2xl shadow-2xl border border-outline-variant/40 p-6 flex flex-col gap-5">
+    <div class="flex items-center justify-between">
+      <h2 class="text-headline-sm font-headline-sm text-on-surface font-bold">Crear programa académico</h2>
+      <button onclick="document.getElementById('modal-crear-programa').classList.add('hidden')" class="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <form method="post" action="{% url 'admin_panel:programs' %}" class="flex flex-col gap-4">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create_program">
+      <div class="flex flex-col gap-1.5">
+        <label class="text-label-md font-label-md text-on-surface font-medium">Nombre del programa <span class="text-error">*</span></label>
+        <input type="text" name="name" required placeholder="Ej. Ingeniería de Sistemas"
+          class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all placeholder:text-outline">
+      </div>
+      <div class="flex items-center gap-3">
+        <input type="checkbox" name="is_active" id="is_active_new" checked class="w-4 h-4 rounded text-secondary border-outline-variant focus:ring-secondary">
+        <label for="is_active_new" class="text-body-md font-body-md text-on-surface cursor-pointer">Programa activo al crearlo</label>
+      </div>
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-outline-variant/30">
+        <button type="button" onclick="document.getElementById('modal-crear-programa').classList.add('hidden')"
+          class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface text-label-md font-label-md hover:bg-surface-container transition-colors">
+          Cancelar
+        </button>
+        <button type="submit" class="px-5 py-2 rounded-lg bg-secondary text-surface-container-lowest text-label-md font-label-md font-semibold shadow hover:bg-on-secondary-container transition-colors">
+          Crear programa
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =========================================================================
+           MODAL: EDITAR PROGRAMA
+           ========================================================================= -->
+<div id="modal-editar-programa" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+  <div class="w-full max-w-md bg-surface rounded-2xl shadow-2xl border border-outline-variant/40 p-6 flex flex-col gap-5">
+    <div class="flex items-center justify-between">
+      <h2 class="text-headline-sm font-headline-sm text-on-surface font-bold">Editar programa académico</h2>
+      <button onclick="document.getElementById('modal-editar-programa').classList.add('hidden')" class="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <form method="post" action="{% url 'admin_panel:programs' %}" class="flex flex-col gap-4">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="edit_program">
+      <input type="hidden" name="program_id" id="edit_program_id">
+      <div class="flex flex-col gap-1.5">
+        <label class="text-label-md font-label-md text-on-surface font-medium">Nombre del programa <span class="text-error">*</span></label>
+        <input type="text" name="name" id="edit_program_name" required
+          class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-body-md font-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all">
+      </div>
+      <div class="flex items-center gap-3">
+        <input type="checkbox" name="is_active" id="edit_is_active" class="w-4 h-4 rounded text-secondary border-outline-variant focus:ring-secondary">
+        <label for="edit_is_active" class="text-body-md font-body-md text-on-surface cursor-pointer">Programa activo</label>
+      </div>
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-outline-variant/30">
+        <button type="button" onclick="document.getElementById('modal-editar-programa').classList.add('hidden')"
+          class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface text-label-md font-label-md hover:bg-surface-container transition-colors">
+          Cancelar
+        </button>
+        <button type="submit" class="px-5 py-2 rounded-lg bg-secondary text-surface-container-lowest text-label-md font-label-md font-semibold shadow hover:bg-on-secondary-container transition-colors">
+          Guardar cambios
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openEditModal(id, name, isActive) {
+  document.getElementById('edit_program_id').value = id;
+  document.getElementById('edit_program_name').value = name;
+  document.getElementById('edit_is_active').checked = isActive;
+  document.getElementById('modal-editar-programa').classList.remove('hidden');
+}
+// Cerrar modal haciendo clic fuera
+['modal-crear-programa','modal-editar-programa'].forEach(function(id){
+  document.getElementById(id).addEventListener('click', function(e){
+    if(e.target === this) this.classList.add('hidden');
+  });
+});
+</script>
+{% endblock %}

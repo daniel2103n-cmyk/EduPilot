@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<!-- Script síncrono para prevenir parpadeo (FOUC) al cargar el estado colapsado -->
+<script>
+  (function() {
+    try {
+      const isCollapsed = localStorage.getItem('edupilot_admin_sidebar_collapsed') === 'true';
+      if (isCollapsed && window.innerWidth >= 768) {
+        document.documentElement.classList.add('admin-sidebar-collapsed');
+      }
+    } catch (e) {}
+  })();
+</script>
+
+<style>
+  /* Variables de dimensiones del layout administrativo */
+  :root {
+    --admin-sidebar-w-expanded: 16rem;  /* 256px */
+    --admin-sidebar-w-collapsed: 5rem;   /* 80px */
+  }
+
+  /* Transición suave para el sidebar y el contenedor principal */
+  #admin-sidebar {
+    width: var(--admin-sidebar-w-expanded);
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  #admin-main-container {
+    margin-left: var(--admin-sidebar-w-expanded);
+    width: calc(100% - var(--admin-sidebar-w-expanded));
+    min-width: 0;
+    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Estado colapsado en Desktop (>= 768px) */
+  @media (min-width: 768px) {
+    html.admin-sidebar-collapsed #admin-sidebar {
+      width: var(--admin-sidebar-w-collapsed);
+    }
+
+    html.admin-sidebar-collapsed #admin-main-container {
+      margin-left: var(--admin-sidebar-w-collapsed);
+      width: calc(100% - var(--admin-sidebar-w-collapsed));
+    }
+
+    /* Ocultar elementos de texto y bloques cuando el sidebar está colapsado */
+    html.admin-sidebar-collapsed .sidebar-text,
+    html.admin-sidebar-collapsed .sidebar-hide-collapsed {
+      display: none !important;
+    }
+
+    /* Centrar iconos de navegación en modo colapsado */
+    html.admin-sidebar-collapsed .sidebar-nav-item {
+      justify-content: center !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+
+    /* Mostrar bloques exclusivos de modo colapsado */
+    html.admin-sidebar-collapsed .sidebar-show-collapsed {
+      display: flex !important;
+    }
+
+    /* Control de tooltips en hover para modo colapsado */
+    .sidebar-tooltip {
+      display: none !important;
+    }
+
+    html.admin-sidebar-collapsed .sidebar-tooltip-container:hover .sidebar-tooltip {
+      display: flex !important;
+    }
+  }
+
+  /* Vista Móvil (< 768px) */
+  @media (max-width: 767px) {
+    #admin-sidebar {
+      width: 17.5rem !important; /* 280px */
+      transform: translateX(-100%);
+    }
+
+    #admin-sidebar.mobile-open {
+      transform: translateX(0) !important;
+    }
+
+    #admin-main-container {
+      margin-left: 0 !important;
+      width: 100% !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="h-full bg-surface text-on-surface antialiased flex min-h-screen overflow-x-hidden relative">
+  <!-- Backdrop oscuro para móvil -->
+  <div id="admin-sidebar-backdrop"
+       class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 hidden opacity-0 transition-opacity duration-300 pointer-events-none md:hidden"
+       onclick="closeAdminMobileSidebar()"
+       aria-hidden="true">
+  </div>
+
+  <!-- Sidebar de Administrador -->
+  {% include 'includes/admin_sidebar.html' %}
+
+  <!-- Contenedor Principal (con ancho y margen dinámicos) -->
+  <div id="admin-main-container" class="flex-1 min-w-0 flex flex-col min-h-screen max-w-full overflow-x-hidden">
+    <!-- Navbar de Administrador -->
+    {% include 'includes/admin_navbar.html' %}
+
+    <!-- Contenido específico de cada vista de administrador -->
+    <main class="flex-1 w-full min-w-0 bg-surface overflow-y-auto overflow-x-hidden">
+      {% block admin_content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<!-- Control interactivo del Sidebar para el Administrador -->
+<script>
+  // Alternar colapso en Desktop (Icon-only mode)
+  function toggleAdminSidebarCollapse() {
+    const isCurrentlyCollapsed = document.documentElement.classList.contains('admin-sidebar-collapsed');
+    if (isCurrentlyCollapsed) {
+      document.documentElement.classList.remove('admin-sidebar-collapsed');
+      localStorage.setItem('edupilot_admin_sidebar_collapsed', 'false');
+    } else {
+      document.documentElement.classList.add('admin-sidebar-collapsed');
+      localStorage.setItem('edupilot_admin_sidebar_collapsed', 'true');
+    }
+  }
+
+  // Alternar apertura/cierre en Móvil (Offcanvas drawer)
+  function toggleAdminMobileSidebar() {
+    const sidebar = document.getElementById('admin-sidebar');
+    if (!sidebar) return;
+    if (sidebar.classList.contains('mobile-open')) {
+      closeAdminMobileSidebar();
+    } else {
+      openAdminMobileSidebar();
+    }
+  }
+
+  function openAdminMobileSidebar() {
+    const sidebar = document.getElementById('admin-sidebar');
+    const backdrop = document.getElementById('admin-sidebar-backdrop');
+    if (!sidebar) return;
+    sidebar.classList.add('mobile-open');
+    if (backdrop) {
+      backdrop.classList.remove('hidden', 'pointer-events-none');
+      void backdrop.offsetWidth; // Forzar reflow para que funcione la transición CSS
+      backdrop.classList.add('opacity-100');
+    }
+    document.body.classList.add('overflow-hidden', 'md:overflow-auto');
+  }
+
+  function closeAdminMobileSidebar() {
+    const sidebar = document.getElementById('admin-sidebar');
+    const backdrop = document.getElementById('admin-sidebar-backdrop');
+    if (!sidebar) return;
+    sidebar.classList.remove('mobile-open');
+    if (backdrop) {
+      backdrop.classList.remove('opacity-100');
+      backdrop.classList.add('pointer-events-none');
+      setTimeout(() => {
+        if (!sidebar.classList.contains('mobile-open')) {
+          backdrop.classList.add('hidden');
+        }
+      }, 300);
+    }
+    document.body.classList.remove('overflow-hidden', 'md:overflow-auto');
+  }
+
+  // Compatibilidad con invocaciones existentes
+  window.toggleAdminSidebar = function() {
+    if (window.innerWidth < 768) {
+      toggleAdminMobileSidebar();
+    } else {
+      toggleAdminSidebarCollapse();
+    }
+  };
+
+  // Escuchar tecla Escape para cerrar drawer o dropdowns
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeAdminMobileSidebar();
+      const dropdown = document.getElementById('admin-user-dropdown');
+      if (dropdown) dropdown.classList.add('hidden');
+    }
+  });
+
+  // Limpieza al redimensionar de móvil a escritorio
+  window.addEventListener('resize', function() {
+    if (window.innerWidth >= 768) {
+      closeAdminMobileSidebar();
+    }
+  });
+</script>
+{% endblock %}

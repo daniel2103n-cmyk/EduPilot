@@ -1,0 +1,168 @@
+{# EduPilot — Navbar Administrativo Funcional y Responsive #}
+<header class="sticky top-0 right-0 z-30 h-16 w-full bg-surface-container-lowest border-b border-outline-variant/30 shadow-xs flex justify-between items-center px-3.5 sm:px-5 md:px-6 shrink-0 transition-colors">
+  
+  <!-- Izquierda: Botones de Toggle + Breadcrumb de Navegación -->
+  <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+    
+    <!-- Botón Toggle Sidebar (Móvil) -->
+    <button type="button"
+            onclick="toggleAdminMobileSidebar()"
+            class="md:hidden p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors shrink-0"
+            aria-label="Abrir menú lateral">
+      <span class="material-symbols-outlined text-[22px]">menu</span>
+    </button>
+
+    <!-- Botón Toggle Sidebar (Desktop: Alternar Icon-only mode) -->
+    <button type="button"
+            onclick="toggleAdminSidebarCollapse()"
+            class="hidden md:inline-flex p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors shrink-0"
+            title="Alternar vista compacta (solo iconos) o expandida"
+            aria-label="Colapsar o expandir menú lateral">
+      <span class="material-symbols-outlined text-[22px]">dock_to_left</span>
+    </button>
+
+    <!-- Breadcrumb de Navegación Activa -->
+    <nav aria-label="Ruta de navegación" class="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium min-w-0 overflow-hidden">
+      <a href="{% url 'admin_panel:dashboard' %}"
+         class="text-secondary hover:underline flex items-center gap-1 font-semibold shrink-0">
+        <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+        <span class="hidden xs:inline">EduPilot</span>
+      </a>
+
+      <span class="text-outline-variant font-normal shrink-0">/</span>
+
+      <span class="text-on-surface font-semibold truncate flex items-center gap-1.5">
+        {% if active_nav == 'dashboard' %}
+          <span class="material-symbols-outlined text-secondary text-[17px] shrink-0">dashboard</span>
+          <span class="truncate">Dashboard</span>
+        {% elif active_nav == 'students' %}
+          <span class="material-symbols-outlined text-secondary text-[17px] shrink-0">group</span>
+          <span class="truncate">Gestión de Estudiantes</span>
+        {% elif active_nav == 'programs' %}
+          <span class="material-symbols-outlined text-secondary text-[17px] shrink-0">account_balance</span>
+          <span class="truncate">Programas Académicos</span>
+        {% elif active_nav == 'courses' %}
+          <span class="material-symbols-outlined text-secondary text-[17px] shrink-0">account_tree</span>
+          <span class="truncate">Materias y Prerrequisitos</span>
+        {% elif active_nav == 'schedules' %}
+          <span class="material-symbols-outlined text-secondary text-[17px] shrink-0">schedule</span>
+          <span class="truncate">Horarios y Secciones</span>
+        {% else %}
+          <span class="truncate">{{ page_title|default:"Panel Administrativo" }}</span>
+        {% endif %}
+      </span>
+    </nav>
+  </div>
+
+  <!-- Derecha: Periodo Académico + Menú de Perfil -->
+  <div class="flex items-center gap-2.5 sm:gap-3 shrink-0">
+    
+    <!-- Badge de Periodo Académico -->
+    <div class="hidden sm:flex items-center bg-surface-container/70 border border-outline-variant/40 rounded-lg px-3 py-1.5 gap-2 text-xs font-medium text-on-surface">
+      <span class="material-symbols-outlined text-secondary text-[16px]">calendar_today</span>
+      <span>Periodo: <strong class="text-secondary font-semibold">2026-2</strong></span>
+    </div>
+
+    <!-- Menú Desplegable / Avatar del Administrador -->
+    <div class="relative" id="admin-user-menu-container">
+      <button type="button"
+              onclick="toggleAdminUserDropdown(event)"
+              class="flex items-center gap-2 p-1.5 rounded-xl hover:bg-surface-container transition-colors focus:outline-none focus:ring-2 focus:ring-secondary/30"
+              aria-haspopup="true"
+              aria-expanded="false"
+              id="admin-user-menu-btn">
+        <div class="w-8 h-8 rounded-full bg-secondary text-surface-container-lowest flex items-center justify-center font-bold text-xs ring-2 ring-secondary/20 shrink-0">
+          {{ request.user.first_name.0|upper|default:request.user.username.0|upper|default:"A" }}
+        </div>
+        <span class="hidden lg:inline text-xs font-semibold text-on-surface max-w-[130px] truncate">
+          {{ request.user.first_name|default:request.user.username }}
+        </span>
+        <span class="material-symbols-outlined text-outline text-[18px]">arrow_drop_down</span>
+      </button>
+
+      <!-- Dropdown Flotante -->
+      <div id="admin-user-dropdown"
+           class="hidden absolute right-0 mt-2 w-64 bg-surface-container-lowest rounded-xl shadow-xl border border-outline-variant/30 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+        
+        <!-- Encabezado del Perfil -->
+        <div class="px-4 py-3 border-b border-outline-variant/20">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[11px] font-medium text-outline">Sesión activa</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-surface-container-lowest uppercase tracking-wider">Admin</span>
+          </div>
+          <p class="text-sm font-semibold text-on-surface truncate">
+            {{ request.user.get_full_name|default:request.user.username }}
+          </p>
+          <p class="text-xs text-on-surface-variant font-mono truncate mt-0.5">
+            {{ request.user.email|default:"admin@edupilot.edu" }}
+          </p>
+        </div>
+
+        <!-- Enlaces Rápidos del Panel -->
+        <div class="py-1">
+          <a href="{% url 'admin_panel:dashboard' %}"
+             class="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container transition-colors {% if active_nav == 'dashboard' %}font-semibold text-secondary bg-surface-container/50{% endif %}">
+            <span class="material-symbols-outlined text-[18px] text-outline">dashboard</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="{% url 'admin_panel:students' %}"
+             class="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container transition-colors {% if active_nav == 'students' %}font-semibold text-secondary bg-surface-container/50{% endif %}">
+            <span class="material-symbols-outlined text-[18px] text-outline">group</span>
+            <span>Gestión de Estudiantes</span>
+          </a>
+          <a href="{% url 'admin_panel:programs' %}"
+             class="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container transition-colors {% if active_nav == 'programs' %}font-semibold text-secondary bg-surface-container/50{% endif %}">
+            <span class="material-symbols-outlined text-[18px] text-outline">account_balance</span>
+            <span>Programas Académicos</span>
+          </a>
+          <a href="{% url 'admin_panel:courses' %}"
+             class="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container transition-colors {% if active_nav == 'courses' %}font-semibold text-secondary bg-surface-container/50{% endif %}">
+            <span class="material-symbols-outlined text-[18px] text-outline">account_tree</span>
+            <span>Materias y Prerrequisitos</span>
+          </a>
+          <a href="{% url 'admin_panel:schedules' %}"
+             class="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container transition-colors {% if active_nav == 'schedules' %}font-semibold text-secondary bg-surface-container/50{% endif %}">
+            <span class="material-symbols-outlined text-[18px] text-outline">schedule</span>
+            <span>Horarios y Grupos</span>
+          </a>
+        </div>
+
+        <!-- Cerrar Sesión -->
+        <div class="pt-1 border-t border-outline-variant/20">
+          <a href="{% url 'authentication:logout' %}"
+             class="flex items-center gap-2.5 px-4 py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-medium">
+            <span class="material-symbols-outlined text-[18px] text-red-500">logout</span>
+            <span>Cerrar sesión</span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</header>
+
+<script>
+  function toggleAdminUserDropdown(e) {
+    if (e) e.stopPropagation();
+    const dropdown = document.getElementById('admin-user-dropdown');
+    const btn = document.getElementById('admin-user-menu-btn');
+    if (!dropdown) return;
+    const isHidden = dropdown.classList.contains('hidden');
+    dropdown.classList.toggle('hidden');
+    if (btn) {
+      btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+    }
+  }
+
+  // Cerrar el dropdown al hacer click fuera
+  document.addEventListener('click', function(e) {
+    const container = document.getElementById('admin-user-menu-container');
+    const dropdown = document.getElementById('admin-user-dropdown');
+    const btn = document.getElementById('admin-user-menu-btn');
+    if (container && dropdown && !container.contains(e.target)) {
+      dropdown.classList.add('hidden');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+</script>

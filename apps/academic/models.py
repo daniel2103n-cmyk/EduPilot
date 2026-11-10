@@ -45,12 +45,16 @@ class AcademicRecord(models.Model):
 
     def clean(self):
         super().clean()
-        # Lógica de aprobación automática
+        # Lógica de aprobación / reprobación estricta según nota
         if self.grade is not None:
             if self.grade >= 3.0:
                 self.status = 'PASSED'
             else:
                 self.status = 'FAILED'
+        elif self.status == 'PASSED':
+            raise ValidationError("Una materia aprobada debe tener calificación registrada (mínimo 3.0).")
+        elif self.status == 'FAILED':
+            raise ValidationError("Una materia reprobada debe tener calificación registrada (menor a 3.0).")
         
         # Validación de 3 intentos fallidos máximos
         if self.status in ['FAILED', 'IN_PROGRESS']:

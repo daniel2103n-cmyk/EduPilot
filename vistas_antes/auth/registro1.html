@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Crear cuenta — Paso 1 — EduPilot{% endblock %}
+{% block body_class %}flex items-center justify-center p-md{% endblock %}
+
+{% block content %}
+<main class="w-full max-w-[520px] bg-surface-container-lowest rounded-soft shadow-[0_16px_32px_rgba(0,43,128,0.04)] p-[32px] md:p-[48px] relative overflow-hidden">
+
+  <!-- Logo -->
+  <div class="flex justify-center mb-margin">
+    <div class="flex items-center gap-sm">
+      <span class="material-symbols-outlined text-primary text-[32px]" style="font-variation-settings: 'FILL' 1;">school</span>
+      <span class="font-headline-md text-headline-md font-bold text-primary">EduPilot</span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="text-center mb-margin">
+    <h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-xs">Crear cuenta de estudiante</h1>
+    <p class="font-body-md text-body-md text-on-surface-variant">Paso 1 de 2: Información básica</p>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="w-full bg-surface-variant rounded-full h-2 mb-lg">
+    <div class="bg-primary h-2 rounded-full w-1/2 transition-all duration-300"></div>
+  </div>
+
+  <!-- Form -->
+  <form class="space-y-gutter" method="post" action="{% url 'authentication:register_step1' %}">
+    {% csrf_token %}
+
+    <!-- Nombre completo -->
+    <div>
+      <label class="block font-label-md text-label-md text-on-surface mb-xs" for="first_name">Nombre completo <span class="text-error">*</span></label>
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+          <span class="material-symbols-outlined text-on-surface-variant">person</span>
+        </div>
+        <input class="block w-full pl-[40px] pr-sm py-sm bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-shadow hover:border-outline placeholder-on-surface-variant/50"
+          id="first_name" name="first_name" placeholder="Ej: Juan Pérez" required type="text"
+          value="{{ step1_data.first_name|default:'' }}"/>
+      </div>
+    </div>
+
+    <!-- Correo institucional -->
+    <div>
+      <label class="block font-label-md text-label-md text-on-surface mb-xs" for="email">Correo institucional <span class="text-error">*</span></label>
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+          <span class="material-symbols-outlined text-on-surface-variant">mail</span>
+        </div>
+        <input class="block w-full pl-[40px] pr-sm py-sm bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-shadow hover:border-outline placeholder-on-surface-variant/50"
+          id="email" name="email" placeholder="estudiante@institucion.edu" required type="email"
+          value="{{ step1_data.email|default:'' }}"/>
+      </div>
+    </div>
+
+    <!-- Student Code -->
+    <div>
+      <label class="block font-label-md text-label-md text-on-surface mb-xs" for="student_code">Código Estudiantil <span class="text-error">*</span></label>
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+          <span class="material-symbols-outlined text-on-surface-variant">badge</span>
+        </div>
+        <input class="block w-full pl-[40px] pr-sm py-sm bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-shadow hover:border-outline placeholder-on-surface-variant/50"
+          id="student_code" name="student_code" placeholder="Ej: 20240001" required type="text"
+          value="{{ step1_data.student_code|default:'' }}"/>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="pt-base flex justify-between gap-base">
+      <a href="{% url 'authentication:login' %}"
+        class="px-md py-sm rounded-lg font-label-md text-label-md text-primary bg-surface-container hover:bg-surface-container-high transition-colors">
+        Cancelar
+      </a>
+      <button class="flex items-center gap-xs px-md py-sm rounded-lg font-label-md text-label-md text-on-primary bg-primary hover:bg-on-primary-fixed-variant transition-colors shadow-sm" type="submit">
+        Continuar
+        <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+      </button>
+    </div>
+
+    <!-- Login link -->
+    <p class="text-center font-body-md text-body-md text-on-surface-variant mt-md">
+      ¿Ya tienes cuenta?
+      <a href="{% url 'authentication:login' %}" class="text-primary font-label-md hover:underline ml-xs">Inicia sesión</a>
+    </p>
+  </form>
+</main>
+{% endblock %}

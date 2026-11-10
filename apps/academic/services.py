@@ -41,6 +41,7 @@ class AcademicService:
                 credits_in_semester = 0
                 
                 # Buscar qué cursos se pueden ver en este semestre simulado
+                # Se priorizan materias pendientes de niveles anteriores (atrasadas/reprobadas)
                 available_for_sim = []
                 for course in all_courses:
                     if course.id in taken_course_ids:
@@ -51,11 +52,16 @@ class AcademicService:
                     prereqs_met = all(p.required_course_id in passed_course_ids for p in prereqs)
                     
                     if prereqs_met and course.level <= sim_semester:
-                        available_for_sim.append(course)
+                        # Prioridad: materias atrasadas (diferencia entre sim_semester y course.level)
+                        delay = sim_semester - course.level
+                        available_for_sim.append((delay, course))
 
-                # Tomar materias hasta llegar a 18 créditos
+                # Ordenar: primero las que llevan más tiempo atrasadas (delay descendente), luego nivel y créditos
+                available_for_sim.sort(key=lambda x: (-x[0], x[1].level, -x[1].credits, x[1].name))
+
+                # Tomar materias hasta llegar a 18 créditos como límite estricto
                 courses_to_take = []
-                for course in available_for_sim:
+                for delay, course in available_for_sim:
                     if credits_in_semester + course.credits <= 18:
                         courses_to_take.append(course)
                         credits_in_semester += course.credits

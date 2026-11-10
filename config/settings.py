@@ -7,7 +7,6 @@ Fase 2: Migrar a PostgreSQL + Railway deployment.
 
 from pathlib import Path
 from decouple import config, Undefined
-import dj_database_url
 
 # ─── Rutas base ───────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,10 +20,13 @@ except Exception:
 
 DEBUG = config('DEBUG', cast=bool, default=True)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app', '.onrender.com', '.render.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '.railway.app', '.onrender.com', '.render.com', '*']
 
-# ─── IA — OpenRouter ──────────────────────────────────────────────────────────
-# Fase 2: usar en ai_service.py
+# ─── IA — Configuración (Ollama / OpenRouter) ───────────────────────────────
+AI_PROVIDER = config('AI_PROVIDER', default='ollama').strip().lower()
+OLLAMA_BASE_URL = config('OLLAMA_BASE_URL', default='http://localhost:11434').rstrip('/')
+OLLAMA_MODEL = config('OLLAMA_MODEL', default='qwen3.5:4b').strip()
+
 try:
     OPENROUTER_API_KEY = config('OPENROUTER_API_KEY')
 except Exception:
@@ -50,14 +52,23 @@ INSTALLED_APPS = [
 # ─── Middleware ───────────────────────────────────────────────────────────────
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+]
+
+# Incluir WhiteNoise si está instalado en el entorno
+try:
+    import whitenoise  # noqa: F401
+    MIDDLEWARE.append('whitenoise.middleware.WhiteNoiseMiddleware')
+except ImportError:
+    pass
+
+MIDDLEWARE.extend([
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
+])
 
 ROOT_URLCONF = 'config.urls'
 
@@ -81,7 +92,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # ─── Base de Datos ────────────────────────────────────────────────────────────
-# Fase 1: SQLite | Fase 2: PostgreSQL en Railway / Render
+# Desarrollo local por defecto: SQLite | Producción / Despliegue: PostgreSQL
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -89,14 +100,21 @@ DATABASES = {
     }
 }
 
-# Configuración dinámica para producción (Render/Railway)
-DATABASE_URL = config('DATABASE_URL', default=None)
+# Configuración dinámica para producción (Render/Railway) o DATABASE_URL personalizada
+# Con USE_LOCAL_DB=True en .env se asegura el uso de SQLite en local pase lo que pase con DATABASE_URL
+USE_LOCAL_DB = config('USE_LOCAL_DB', cast=bool, default=False)
+DATABASE_URL = None if USE_LOCAL_DB else config('DATABASE_URL', default=None)
 if DATABASE_URL:
-    DATABASES['default'] = dj_database_url.config(
-        default=DATABASE_URL,
-        conn_max_age=600,
-        ssl_require=True
-    )
+    try:
+        import dj_database_url
+        is_local_db = ('localhost' in DATABASE_URL) or ('127.0.0.1' in DATABASE_URL) or ('sqlite' in DATABASE_URL)
+        DATABASES['default'] = dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=config('DB_SSL_REQUIRE', cast=bool, default=not is_local_db)
+        )
+    except ImportError:
+        pass
 
 # ─── Validación de contraseñas ────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
@@ -117,13 +135,26 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Configuración de almacenamiento para producción (servido por WhiteNoise)
+# Configuración de almacenamiento: en producción usa WhiteNoise si está instalado y no estamos en DEBUG.
+# En desarrollo (DEBUG=True) se usa el storage nativo de Django para evitar problemas con hashes y archivos faltantes.
+has_whitenoise = False
+try:
+    import whitenoise  # noqa: F401
+    has_whitenoise = True
+except ImportError:
+    has_whitenoise = False
+
+if has_whitenoise and not DEBUG:
+    staticfiles_storage = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+else:
+    staticfiles_storage = "django.contrib.staticfiles.storage.StaticFilesStorage"
+
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": staticfiles_storage,
     },
 }
 
